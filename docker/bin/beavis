@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+top="$(dirname "$0")/.."
+
+AWS=$(curl -X OPTIONS -f --connect-timeout 2 http://169.254.169.254/latest/ 2>/dev/null; echo $?)
+CONFIG="$top/etc/config.json"
+COMMAND="server"
+OPTS="-cp /beavis/lib/beavis.jar"
+NAMESPACE="beavis.core"
+AGGRESSIVE_OPTS="-server -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSParallelRemarkEnabled -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -XX:+UseCompressedOops -XX:+CMSClassUnloadingEnabled"
+
+if [[ $AWS == 0 ]]; then
+  eval "$(/opt/bin/ec2-env)"
+  /opt/bin/s3kms get -b opsee-keys -o dev/vape.key > /beavis/etc/vape.key
+fi
+
+for arg in "$@"; do
+  case $arg in
+    "-a")
+      OPTS="$AGGRESSIVE_OPTS $OPTS"
+      ;;
+    -*)
+      OPTS="$OPTS $arg"
+      ;;
+    test|start)
+      COMMAND="server"
+      ;;
+    migrate)
+      COMMAND="db"
+      SUBCOMMAND="migrate"
+      ;;
+    *)
+      CONFIG="$arg"
+      unset GEN_CONFIG
+     ;;
+  esac
+done
+
+exec java $OPTS "$NAMESPACE" "$COMMAND" "$SUBCOMMAND" "$CONFIG"

@@ -1,0 +1,16 @@
+{
+  "db-spec": {
+    "classname":"org.postgresql.Driver",
+    "subprotocol":"postgresql",
+    "subname":"beavis",
+    "user":"cliff",
+    "password":"",
+    "max-conns":6,
+    "min-conns":1,
+    "init-conns":1
+  },
+  "secret":"vape.key",
+  "server":{
+    "port":8081
+  }
+}

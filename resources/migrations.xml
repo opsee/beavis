@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="0" author="cliff" failOnError="false">
+        <sql>
+            create type relationship_type as enum ('equal', 'notEqual',
+              'empty', 'notEmpty',
+              'contain', 'notContain',
+              'regExp');
+        </sql>
+    </changeSet>
+    <changeSet id="1" author="cliff">
+        <createTable tableName="assertions">
+            <column name="id" type="serial"><constraints primaryKey="true"/></column>
+            <column name="check_id" type="varchar(255)"><constraints nullable="false" /></column>
+            <column name="customer_id" type="UUID"><constraints nullable="false" /></column>
+            <column name="relationship" type="relationship_type"/>
+            <column name="key" type="varchar(255)"/>
+            <column name="value" type="varchar(255)"/>
+            <column name="operand" type="varchar(255)"/>
+        </createTable>
+        <createIndex tableName="assertions" indexName="check_id_idx">
+            <column name="check_id"/>
+        </createIndex>
+        <createIndex tableName="assertions" indexName="customer_id_idx">
+            <column name="customer_id"/>
+        </createIndex>
+    </changeSet>
+    
+</databaseChangeLog>

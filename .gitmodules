@@ -1,3 +1,6 @@
 [submodule "js/slate"]
 	path = js/slate
 	url = git@github.com:opsee/slate.git
+[submodule "resources/proto"]
+	path = resources/proto
+	url = git@github.com:opsee/bastion_proto.git

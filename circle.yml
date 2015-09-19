@@ -1,0 +1,31 @@
+checkout:
+  post:
+    - git submodule sync
+    - git submodule update --init
+dependencies:
+  override:
+    - docker info
+    - docker pull quay.io/opsee/build-clj
+    - docker pull sameersbn/postgresql:9.4-3
+    - docker run --name postgresql -d -e PSQL_TRUST_LOCALNET=true -e DB_USER=postgres -e DB_PASS= -e DB_NAME=beavis_test sameersbn/postgresql:9.4-3
+machine:
+  java:
+    version: oraclejdk8
+  services:
+    - docker
+notify:
+  webhooks:
+    - url: https://hooks.slack.com/services/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
+test:
+  override:
+    - docker run --link postgresql:postgresql -e LEIN_USERNAME=$LEIN_USERNAME -e LEIN_PASSPHRASE=$LEIN_PASSPHRASE -v ~/.m2:/root/.m2 -v `pwd`:/build quay.io/opsee/build-clj
+    - lein docker
+    - docker run -d -p 8081:8081 quay.io/opsee/beavis; sleep 20
+    - ./test_liveness.sh
+deployment:
+  hub:
+    branch: master
+    owner: opsee
+    commands:
+      - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS quay.io
+      - docker push quay.io/opsee/beavis
