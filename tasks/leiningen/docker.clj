@@ -8,8 +8,8 @@
       "Build docker image"
       [project]
       (let [jar-path (get-jar-filename project :standalone)]
-           (sh "cp" jar-path "docker/lib/bartnet.jar")
-           (let [docker (sh "docker" "build" "-t" "quay.io/opsee/bartnet" "docker")
+           (sh "cp" jar-path "docker/lib/beavis.jar")
+           (let [docker (sh "docker" "build" "-t" "quay.io/opsee/beavis" "docker")
                  git-ref (sh "git" "rev-parse" "--verify" "HEAD")]
                 (if-not (= 0 (:exit git-ref))
                         (println (:err git-ref))
@@ -17,4 +17,4 @@
                           (println (:out docker))
                           (if-not (blank? (:err docker))
                                   (println "Build error: " (:err docker))
-                                  (sh "docker" "build" "-t" (str "quay.io/opsee/bartnet:" (trim (:out git-ref))) "docker")))))))
+                                  (sh "docker" "build" "-t" (str "quay.io/opsee/beavis:" (trim (:out git-ref))) "docker")))))))
