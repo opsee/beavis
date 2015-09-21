@@ -11,7 +11,7 @@
     "min-conns":1,
     "init-conns":1
   },
-  "secret":"vape.key",
+  "secret":"/beavis/etc/vape.key",
   "server":{
     "port":8081
   },
