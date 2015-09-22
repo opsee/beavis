@@ -17,6 +17,8 @@ else
   touch /beavis/etc/beavisenv
 fi
 
+cat /beavis/etc/beavisenv
+
 
 for arg in "$@"; do
   case $arg in
