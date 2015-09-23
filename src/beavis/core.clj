@@ -1,6 +1,7 @@
 (ns beavis.core
   (:gen-class)
   (:require [beavis.api :as api]
+            [clojure.tools.logging :as log]
             [opsee.middleware.migrate :as migrate]
             [opsee.middleware.config :refer [config]]
             [opsee.middleware.pool :refer [pool]]
@@ -12,6 +13,7 @@
 (defn start-server [args]
   (let [conf (config (last args))
         db (pool (:db-spec conf))]
+    (log/info "config" conf)
     (run-jetty (api/handler db conf) (:server conf))))
 
 (defn -main [& args]
