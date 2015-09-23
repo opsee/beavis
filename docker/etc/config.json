@@ -13,7 +13,7 @@
   },
   "secret":"/beavis/etc/vape.key",
   "server":{
-    "port":8081
+    "port":2020
   },
   "nsq":{
     "lookup":"{{NSQ_LOOKUP}}",

@@ -11,7 +11,7 @@ TimeoutStartSec=0
 ExecStartPre=-/usr/bin/docker kill %p-%i
 ExecStartPre=-/usr/bin/docker rm %p-%i
 ExecStartPre=/usr/bin/docker pull quay.io/opsee/%p:latest
-ExecStartPre=/usr/bin/docker run -e quay.io/opsee/%p migrate
+ExecStartPre=/usr/bin/docker run quay.io/opsee/beavis migrate
 ExecStart=/usr/bin/docker run --name %p-%i -p 8081:8081 quay.io/opsee/%p
 ExecStop=/usr/bin/docker stop %p-%i
 
