@@ -13,7 +13,6 @@
 (defn start-server [args]
   (let [conf (config (last args))
         db (pool (:db-spec conf))]
-    (log/info "config" conf)
     (run-jetty (api/handler db conf) (:server conf))))
 
 (defn -main [& args]
