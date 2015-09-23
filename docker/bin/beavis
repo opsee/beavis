@@ -17,9 +17,6 @@ else
   touch /beavis/etc/beavisenv
 fi
 
-cat /beavis/etc/beavisenv
-
-
 for arg in "$@"; do
   case $arg in
     "-a")
@@ -42,5 +39,4 @@ for arg in "$@"; do
   esac
 done
 
-source /beavis/etc/beavisenv &&
- exec java $OPTS "$NAMESPACE" "$COMMAND" "$SUBCOMMAND" "$CONFIG"
+env $(cat /beavis/etc/beavisenv | xargs) java $OPTS "$NAMESPACE" "$COMMAND" "$SUBCOMMAND" "$CONFIG"
