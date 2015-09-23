@@ -6,7 +6,7 @@ function retry {
     until [ $n -ge 5 ]
     do
         echo "try ${n}"
-        test "$(curl -s --retry 10 --retry-delay 5 http://localhost:8081/health_check)" = "A ok" && result=0 && return
+        test "$(curl -s --retry 10 --retry-delay 5 http://localhost:2020/health_check)" = "A ok" && result=0 && return
         n=$[$n+1]
         sleep 15
     done
