@@ -86,3 +86,27 @@
                                                                             :relationship "notEqual"
                                                                             :operand      "application/json"})]
                                                                 :in-any-order)))))
+
+(facts "assertion endpoint"
+  (with-state-changes
+    [(before :facts (doto
+                      (do-setup)
+                      assertion-fixtures))]
+    (fact "gets an assertion"
+      (let [response ((app) (-> (mock/request :get "/assertions/hello")
+                                (mock/header "Authorization" auth-header)))]
+        (:status response) => 200
+        (:body response) => (is-json (just {:check-id "hello"
+                                            :assertions (contains [(just {:key "header"
+                                                                          :value "content-type"
+                                                                          :relationship "equal"
+                                                                          :operand "text/plain"})
+                                                                   (just {:key "statusCode"
+                                                                          :relationship "equal"
+                                                                          :operand 200})]
+                                                                  :in-any-order)}))))
+    (fact "deletes an assertion"
+      (let [response ((app) (-> (mock/request :delete "/assertions/hello")
+                                (mock/header "Authorization" auth-header)))]
+        (:status response) => 204
+        (sql/get-assertions-by-check @db "hello") => empty?))))
