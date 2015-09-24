@@ -18,13 +18,41 @@
 
 ;;;;;========== Resource Callbacks =========
 
+(defn- parse-if-int [v]
+  (if (re-matches #"\d+" v)
+    (Integer/parseInt v)
+    v))
+
+(defn records->check-assertions [records]
+  (vals (reduce (fn [acc rec]
+                  (let [check-id (:check_id rec)
+                        check-ass (-> (get acc check-id {:check-id check-id
+                                                         :assertions []})
+                                      (update :assertions conj
+                                              (-> (apply dissoc rec (conj
+                                                                      (for [[k v] rec :when (nil? v)] k)
+                                                                      :id :check_id :customer_id))
+                                                  (update :operand parse-if-int))))]
+                    (assoc acc check-id check-ass)))
+                {}
+                records)))
+
 (defn assertion-exists? [check-id]
   (fn [ctx]
     (let [login (:login ctx)
           customer-id (:customer_id login)
-          assertions (sql/get-assertions-by-check-and-customer @db {:check_id check-id :customer_id customer-id})]
-      {:assertions {:check-id check-id
-                    :assertions assertions}})))
+          check-assertion (-> (sql/get-assertions-by-check-and-customer @db {:check_id check-id
+                                                                             :customer_id customer-id})
+                              records->check-assertions
+                              first)]
+      {:assertions check-assertion})))
+
+(defn delete-assertion [check-id]
+  (fn [ctx]
+    (let [login (:login ctx)
+          customer-id (:customer_id login)]
+      (sql/delete-assertion-by-check-and-customer! @db {:check_id check-id
+                                                        :customer_id customer-id}))))
 
 (defn create-assertion [assertions]
   (fn [ctx]
@@ -43,26 +71,10 @@
                          (ring-response {:status 500
                                          :body (generate-string {:errors "A database error occurred."})})))}))))
 
-(defn- parse-if-int [v]
-  (if (re-matches #"\d+" v)
-    (Integer/parseInt v)
-    v))
-
 (defn list-assertions [ctx]
   (let [login (:login ctx)
         customer-id (:customer_id login)]
-    (vals (reduce (fn [acc rec]
-                    (let [check-id (:check_id rec)
-                          check-ass (-> (get acc check-id {:check-id check-id
-                                                           :assertions []})
-                                        (update :assertions conj
-                                                (-> (apply dissoc rec (conj
-                                                                        (for [[k v] rec :when (nil? v)] k)
-                                                                        :id :check_id :customer_id))
-                                                    (update :operand parse-if-int))))]
-                      (assoc acc check-id check-ass)))
-                  {}
-                  (sql/get-assertions-by-customer @db customer-id)))))
+    (records->check-assertions (sql/get-assertions-by-customer @db customer-id))))
 
 ;;;;;========== Resource Defs =========
 
@@ -76,6 +88,12 @@
   :post! (create-assertion assertions)
   :handle-created :assertions
   :handle-ok list-assertions)
+
+(defresource assertion-resource [check_id] defaults
+  :allowed-methods [:get :delete]
+  :exists? (assertion-exists? check_id)
+  :delete! (delete-assertion check_id)
+  :handle-ok :assertions)
 
 ;;;;;========== Schema Defs ============
 
@@ -113,7 +131,16 @@
     (GET* "/assertions" []
       :summary "Retrieves all of a customer's assertions."
       :return [CheckAssertions]
-      (assertions-resource nil))))
+      (assertions-resource nil))
+
+    (GET* "/assertions/:check_id" [check_id]
+      :summary "Retrieves the assertions for a check."
+      :return CheckAssertions
+      (assertion-resource check_id))
+
+    (DELETE* "/assertions/:check_id" [check_id]
+      :summary "Deletes the assertions for a check."
+      (assertion-resource check_id))))
 
 (defn handler [pool config]
   (reset! db pool)
