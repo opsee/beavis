@@ -1,0 +1,16 @@
+[Unit]
+Description=Beavis ELB Registration
+After=docker.service
+PartOf=beavis@%i.service
+
+[Service]
+Restart=always
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill %p-%i
+ExecStartPre=-/usr/bin/docker rm %p-%i
+ExecStartPre=/usr/bin/docker pull quay.io/coreos/elb-presence:latest
+ExecStart=/usr/bin/docker run --rm --name %p-%i -e AWS_REGION=us-west-1 -e ELB_NAME=beavis-lb quay.io/coreos/elb-presence
+ExecStop=/usr/bin/docker stop %p-%i
+
+[X-Fleet]
+MachineOf=beavis@%i.service
