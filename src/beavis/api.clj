@@ -47,7 +47,27 @@
                               first)]
       {:assertions check-assertion})))
 
-(defn delete-assertion [check-id]
+(defn- do-assertion-inserts [customer-id check-id assertions tx]
+  (let [inserts (for [assertion (:assertions assertions)
+                      :let [record (assoc assertion :check_id check-id :customer_id customer-id)]]
+                  (sql/insert-into-assertions! tx record))]
+    {:assertions (if (not-any? not inserts)
+                   assertions
+                   (do
+                     (db-set-rollback-only! tx)
+                     (ring-response {:status 500
+                                     :body (generate-string {:errors "A database error occurred."})})))}))
+
+(defn update-assertion! [check-id assertions]
+  (fn [ctx]
+    (with-db-transaction [tx @db]
+      (let [login (:login ctx)
+            customer-id (:customer_id login)]
+        (sql/delete-assertion-by-check-and-customer! tx {:check_id check-id
+                                                         :customer_id customer-id})
+        (do-assertion-inserts customer-id check-id assertions tx)))))
+
+(defn delete-assertion! [check-id]
   (fn [ctx]
     (let [login (:login ctx)
           customer-id (:customer_id login)]
@@ -59,17 +79,8 @@
     (with-db-transaction [tx @db]
       (let [login (:login ctx)
             customer-id (:customer_id login)
-            check-id (:check-id assertions)
-            inserts (for [assertion (:assertions assertions)
-                          :let [record (assoc assertion :check_id check-id :customer_id customer-id)]]
-                      (sql/insert-into-assertions! @db record))]
-        (log/info inserts)
-        {:assertions (if (not-any? not inserts)
-                       assertions
-                       (do
-                         (db-set-rollback-only! tx)
-                         (ring-response {:status 500
-                                         :body (generate-string {:errors "A database error occurred."})})))}))))
+            check-id (:check-id assertions)]
+        (do-assertion-inserts customer-id check-id assertions tx)))))
 
 (defn list-assertions [ctx]
   (let [login (:login ctx)
@@ -89,10 +100,12 @@
   :handle-created :assertions
   :handle-ok list-assertions)
 
-(defresource assertion-resource [check_id] defaults
-  :allowed-methods [:get :delete]
+(defresource assertion-resource [check_id assertions] defaults
+  :allowed-methods [:get :put :delete]
   :exists? (assertion-exists? check_id)
-  :delete! (delete-assertion check_id)
+  :put! (update-assertion! check_id assertions)
+  :delete! (delete-assertion! check_id)
+  :new? false
   :handle-ok :assertions)
 
 ;;;;;========== Schema Defs ============
@@ -136,11 +149,17 @@
     (GET* "/assertions/:check_id" [check_id]
       :summary "Retrieves the assertions for a check."
       :return CheckAssertions
-      (assertion-resource check_id))
+      (assertion-resource check_id nil))
 
     (DELETE* "/assertions/:check_id" [check_id]
       :summary "Deletes the assertions for a check."
-      (assertion-resource check_id))))
+      (assertion-resource check_id nil))
+
+    (PUT* "/assertions/:check_id" [check_id]
+      :summary "Replaces an assertion."
+      :body [assertions CheckAssertions]
+      :return CheckAssertions
+      (assertion-resource check_id assertions))))
 
 (defn handler [pool config]
   (reset! db pool)
