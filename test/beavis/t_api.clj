@@ -109,4 +109,14 @@
       (let [response ((app) (-> (mock/request :delete "/assertions/hello")
                                 (mock/header "Authorization" auth-header)))]
         (:status response) => 204
-        (sql/get-assertions-by-check @db "hello") => empty?))))
+        (sql/get-assertions-by-check @db "hello") => empty?))
+    (fact "replaces an assertion"
+      (let [response ((app) (-> (mock/request :put "/assertions/hello" (generate-string {:check-id "hello"
+                                                                                         :assertions [{:key          "statusCode"
+                                                                                                       :relationship "notEqual"
+                                                                                                       :operand      500}]}))
+                                (mock/header "Authorization" auth-header)))]
+        (:status response) => 204
+        (sql/get-assertions-by-check @db "hello") => (just [(contains {:key          "statusCode"
+                                                                       :relationship "notEqual"
+                                                                       :operand      "500"})])))))
