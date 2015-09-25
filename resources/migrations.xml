@@ -31,5 +31,13 @@
             <column name="customer_id"/>
         </createIndex>
     </changeSet>
-    
+    <changeSet id="2" author="cliff">
+        <createTable tableName="notifications">
+            <column name="id" type="serial"><constraints primaryKey="true" /></column>
+            <column name="check_id" type="varchar(255)"><constraints nullable="false"/></column>
+            <column name="customer_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="type" type="varchar(255)"/>
+            <column name="value" type="varchar(255)"/>
+        </createTable>
+    </changeSet>
 </databaseChangeLog>
