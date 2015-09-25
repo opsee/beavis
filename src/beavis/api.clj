@@ -101,7 +101,7 @@
   {:key s/Str
    (s/optional-key :value) s/Str
    :relationship (s/enum "equal" "notEqual" "empty" "notEmpty" "contain" "notContain" "regExp")
-   (s/optional-key :operand) s/Any})
+   (s/optional-key :operand) (s/either s/Str s/Num)})
 
 (s/defschema CheckAssertions
   {:check-id   s/Str
