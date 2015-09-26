@@ -167,9 +167,9 @@
       log-request
       log-response
       (wrap-cors :access-control-allow-origin [#"https?://localhost(:\d+)?"
-                                               #"https?://opsee\.com"
-                                               #"https?://opsee\.co"
-                                               #"https?://opsy\.co"
+                                               #"https?://(\w+\.)?opsee\.com"
+                                               #"https?://(\w+\.)?opsee\.co"
+                                               #"https?://(\w+\.)?opsy\.co"
                                                #"null"]
                  :access-control-allow-methods [:get :put :post :patch :delete])
       vary-origin
