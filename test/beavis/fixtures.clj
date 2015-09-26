@@ -1,5 +1,6 @@
 (ns beavis.fixtures
-  (:require [beavis.sql :as sql]))
+  (:require [beavis.sql :as sql])
+  (:import (java.sql BatchUpdateException)))
 
 
 
@@ -26,3 +27,17 @@
                                    :key "statusCode"
                                    :relationship "notEqual"
                                    :operand "500"}))
+
+(defn notification-fixtures [db]
+  (sql/insert-into-notifications<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                                       :check_id "hello"
+                                       :type "email"
+                                       :value "cliff@leaninto.it"})
+  (sql/insert-into-notifications<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                                       :check_id "hello"
+                                       :type "slack"
+                                       :value "https://slack.com/fuckoff"})
+  (sql/insert-into-notifications<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                                       :check_id "poop"
+                                       :type "email"
+                                       :value "poooooooooooo"}))
