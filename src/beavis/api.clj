@@ -10,6 +10,7 @@
             [liberator.representation :refer [ring-response]]
             [schema.core :as s]
             [beavis.sql :as sql]
+            [clojure.string :as str]
             [compojure.api.sweet :refer :all]))
 
 ;;;;;========== Globals (eat my ass) ======
@@ -18,10 +19,33 @@
 
 ;;;;;========== Resource Callbacks =========
 
+(defn- cust-id [ctx]
+  (-> ctx
+      :login
+      :customer_id))
+
 (defn- parse-if-int [v]
   (if (re-matches #"\d+" v)
     (Integer/parseInt v)
     v))
+
+(defn- key-process [record f]
+  (into {} (map (fn [[k v]]
+                  [(-> (name k)
+                       f
+                       keyword) v]))
+        record))
+
+(defn- lift-underscores [record]
+  (key-process record #(str/replace % #"_" "-")))
+
+(defn- lower-dashes [record]
+  (key-process record #(str/replace % #"\-" "_")))
+
+(defn- clean-notification [record]
+  (-> record
+      (dissoc :customer_id)
+      lift-underscores))
 
 (defn records->check-assertions [records]
   (vals (reduce (fn [acc rec]
@@ -87,6 +111,36 @@
         customer-id (:customer_id login)]
     (records->check-assertions (sql/get-assertions-by-customer @db customer-id))))
 
+(defn notification-exists? [id]
+  (fn [ctx]
+    (let [login (:login ctx)
+          customer-id (:customer_id login)]
+      {:notification (-> (sql/get-notification-by-customer-and-id @db {:customer_id customer-id
+                                                                       :id id})
+                         first
+                         clean-notification)})))
+
+(defn create-notification [notification]
+  (fn [ctx]
+    {:notification (-> (sql/insert-into-notifications<! @db (-> notification
+                                                                (assoc :customer-id (cust-id ctx))
+                                                                lower-dashes))
+                       (dissoc :customer_id)
+                       lift-underscores)}))
+
+(defn delete-notification! [id]
+  (fn [ctx]
+    (sql/delete-notification-by-customer-and-id! @db {:id id
+                                                      :customer_id (cust-id ctx)})))
+
+(defn list-notifications [check-id]
+  (fn [ctx]
+    (map clean-notification
+         (if check-id
+           (sql/get-notifications-by-customer-and-check-id @db {:customer_id (cust-id ctx)
+                                                                :check_id check-id})
+           (sql/get-notifications-by-customer @db (cust-id ctx))))))
+
 ;;;;;========== Resource Defs =========
 
 (def defaults
@@ -108,17 +162,36 @@
   :new? false
   :handle-ok :assertions)
 
+(defresource notifications-resource [notification check-id] defaults
+  :allowed-methods [:get :post]
+  :post! (create-notification notification)
+  :handle-created :notification
+  :handle-ok (list-notifications check-id))
+
+(defresource notification-resource [id notification] defaults
+  :allowed-methods [:get :delete]
+  :exists? (notification-exists? id)
+  :delete! (delete-notification! id)
+  :new? false
+  :handle-ok :notification)
+
 ;;;;;========== Schema Defs ============
 
 (s/defschema Assertion
-  {:key s/Str
-   (s/optional-key :value) s/Str
-   :relationship (s/enum "equal" "notEqual" "empty" "notEmpty" "contain" "notContain" "regExp")
+  {:key                      s/Str
+   (s/optional-key :value)   s/Str
+   :relationship             (s/enum "equal" "notEqual" "empty" "notEmpty" "contain" "notContain" "regExp")
    (s/optional-key :operand) (s/either s/Str s/Num)})
 
 (s/defschema CheckAssertions
   {:check-id   s/Str
    :assertions [Assertion]})
+
+(s/defschema Notification
+  {(s/optional-key :id) s/Num
+   :check-id            s/Str
+   :type                s/Str
+   :value               s/Str})
 
 ;;;;;============ Routes ===============
 
@@ -159,7 +232,30 @@
       :summary "Replaces an assertion."
       :body [assertions CheckAssertions]
       :return CheckAssertions
-      (assertion-resource check_id assertions))))
+      (assertion-resource check_id assertions))
+
+    (GET* "/notifications/:id" []
+      :summary "Retrieves a notification."
+      :path-params [id :- Long]
+      :return Notification
+      (notification-resource id nil))
+
+    (DELETE* "/notifications/:id" []
+      :summary "Deletes a notification."
+      :path-params [id :- Long]
+      (notification-resource id nil))
+
+    (GET* "/notifications" []
+      :summary "Gets a filtered list of notifications."
+      :query-params [{check-id :- s/Str nil}]
+      :return [Notification]
+      (notifications-resource nil check-id))
+
+    (POST* "/notifications" []
+      :summary "Create a new notification."
+      :body [notification Notification]
+      :return Notification
+      (notifications-resource notification nil))))
 
 (defn handler [pool config]
   (reset! db pool)

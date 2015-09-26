@@ -17,3 +17,24 @@ select * from assertions where check_id=:check_id;
 --name: delete-assertion-by-check-and-customer!
 -- Deletes an assertion.
 delete from assertions where check_id=:check_id and customer_id=:customer_id::uuid;
+
+----------------------------------------------
+
+--name: insert-into-notifications<!
+insert into notifications (check_id, customer_id, type, "value") values
+        (:check_id, :customer_id::uuid, :type, :value);
+
+--name: get-notification-by-customer-and-id
+select * from notifications where customer_id=:customer_id::uuid and id=:id;
+
+--name: get-notification-by-id
+select * from notifications where id=:id;
+
+--name: delete-notification-by-customer-and-id!
+delete from notifications where customer_id=:customer_id::uuid and id=:id;
+
+--name: get-notifications-by-customer-and-check-id
+select * from notifications where customer_id=:customer_id::uuid and check_id=:check_id;
+
+--name: get-notifications-by-customer
+select * from notifications where customer_id=:customer_id::uuid;

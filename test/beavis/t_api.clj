@@ -120,3 +120,49 @@
         (sql/get-assertions-by-check @db "hello") => (just [(contains {:key          "statusCode"
                                                                        :relationship "notEqual"
                                                                        :operand      "500"})])))))
+
+(facts "notification endpoint"
+  (with-state-changes
+    [(before :facts (doto
+                      (do-setup)
+                      notification-fixtures))]
+    (fact "gets a notification"
+      (let [response ((app) (-> (mock/request :get "/notifications/1")
+                                (mock/header "Authorization" auth-header)))]
+        (:status response) => 200
+        (:body response) => (is-json (just {:id 1
+                                            :check-id "hello"
+                                            :type "email"
+                                            :value "cliff@leaninto.it"}))))
+    (fact "deletes a notification"
+      (let [response ((app) (-> (mock/request :delete "/notifications/1")
+                                (mock/header "Authorization" auth-header)))]
+        (:status response) => 204
+        (sql/get-notification-by-id @db 1) => empty?))))
+
+(facts "notifications endpoint"
+  (with-state-changes
+    [(before :facts (doto
+                      (do-setup)
+                      notification-fixtures))]
+    (fact "posts a notification"
+      (let [response ((app) (-> (mock/request :post "/notifications" (generate-string {:check-id "what"
+                                                                                       :type "email"
+                                                                                       :value "sup@hotmail.net"}))
+                                (mock/header "Authorization" auth-header)))]
+        (:status response) => 201
+        (:body response) => (is-json (just {:id number?
+                                            :check-id "what"
+                                            :type "email"
+                                            :value "sup@hotmail.net"}))))
+    (fact "gets all notifications for a check"
+      (let [response ((app) (-> (mock/request :get "/notifications?check-id=hello")
+                                (mock/header "Authorization" auth-header)))]
+        (:status response) => 200
+        (:body response) => (is-json (just [(contains {:check-id "hello"
+                                                       :type "email"
+                                                       :value "cliff@leaninto.it"})
+                                            (contains {:check-id "hello"
+                                                       :type "slack"
+                                                       :value "https://slack.com/fuckoff"})]
+                                           :in-any-order))))))
