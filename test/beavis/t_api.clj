@@ -165,4 +165,16 @@
                                             (contains {:check-id "hello"
                                                        :type "slack"
                                                        :value "https://slack.com/fuckoff"})]
+                                           :in-any-order))))
+    (fact "gets all notifications"
+      (let [response ((app) (-> (mock/request :get "/notifications")
+                                (mock/header "Authorization" auth-header)))]
+        (:status response) => 200
+        (:body response) => (is-json (just [(contains {:check-id "hello"
+                                                       :type "email"
+                                                       :value "cliff@leaninto.it"})
+                                            (contains {:check-id "hello"
+                                                       :type "slack"
+                                                       :value "https://slack.com/fuckoff"})
+                                            (contains {:check-id "poop"})]
                                            :in-any-order))))))
