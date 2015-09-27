@@ -63,10 +63,8 @@
 
 (defn assertion-exists? [check-id]
   (fn [ctx]
-    (let [login (:login ctx)
-          customer-id (:customer_id login)
-          check-assertion (-> (sql/get-assertions-by-check-and-customer @db {:check_id check-id
-                                                                             :customer_id customer-id})
+    (let [check-assertion (-> (sql/get-assertions-by-check-and-customer @db {:check_id check-id
+                                                                             :customer_id (cust-id ctx)})
                               records->check-assertions
                               first)]
       {:assertions check-assertion})))
@@ -85,40 +83,30 @@
 (defn update-assertion! [check-id assertions]
   (fn [ctx]
     (with-db-transaction [tx @db]
-      (let [login (:login ctx)
-            customer-id (:customer_id login)]
-        (sql/delete-assertion-by-check-and-customer! tx {:check_id check-id
-                                                         :customer_id customer-id})
-        (do-assertion-inserts customer-id check-id assertions tx)))))
+      (sql/delete-assertion-by-check-and-customer! tx {:check_id check-id
+                                                       :customer_id (cust-id ctx)})
+      (do-assertion-inserts (cust-id ctx) check-id assertions tx))))
 
 (defn delete-assertion! [check-id]
   (fn [ctx]
-    (let [login (:login ctx)
-          customer-id (:customer_id login)]
-      (sql/delete-assertion-by-check-and-customer! @db {:check_id check-id
-                                                        :customer_id customer-id}))))
+    (sql/delete-assertion-by-check-and-customer! @db {:check_id check-id
+                                                      :customer_id (cust-id ctx)})))
 
 (defn create-assertion [assertions]
   (fn [ctx]
     (with-db-transaction [tx @db]
-      (let [login (:login ctx)
-            customer-id (:customer_id login)
-            check-id (:check-id assertions)]
-        (do-assertion-inserts customer-id check-id assertions tx)))))
+      (let [check-id (:check-id assertions)]
+        (do-assertion-inserts (cust-id ctx) check-id assertions tx)))))
 
 (defn list-assertions [ctx]
-  (let [login (:login ctx)
-        customer-id (:customer_id login)]
-    (records->check-assertions (sql/get-assertions-by-customer @db customer-id))))
+  (records->check-assertions (sql/get-assertions-by-customer @db (cust-id ctx))))
 
 (defn notification-exists? [id]
   (fn [ctx]
-    (let [login (:login ctx)
-          customer-id (:customer_id login)]
-      {:notification (-> (sql/get-notification-by-customer-and-id @db {:customer_id customer-id
-                                                                       :id id})
-                         first
-                         clean-notification)})))
+    {:notification (-> (sql/get-notification-by-customer-and-id @db {:customer_id (cust-id ctx)
+                                                                     :id id})
+                       first
+                       clean-notification)}))
 
 (defn create-notification [notification]
   (fn [ctx]
@@ -208,54 +196,60 @@
       :no-doc true
       "A ok")
 
-    (POST* "/assertions" []
-      :summary "Creates a new assertion to be run against a given check."
-      :body [assertions CheckAssertions]
-      :return CheckAssertions
-      (assertions-resource assertions))
+    (context* "/assertions" []
+      :tags ["assertions"]
 
-    (GET* "/assertions" []
-      :summary "Retrieves all of a customer's assertions."
-      :return [CheckAssertions]
-      (assertions-resource nil))
+      (POST* "/" []
+        :summary "Creates a new assertion to be run against a given check."
+        :body [assertions CheckAssertions]
+        :return CheckAssertions
+        (assertions-resource assertions))
 
-    (GET* "/assertions/:check_id" [check_id]
-      :summary "Retrieves the assertions for a check."
-      :return CheckAssertions
-      (assertion-resource check_id nil))
+      (GET* "/" []
+        :summary "Retrieves all of a customer's assertions."
+        :return [CheckAssertions]
+        (assertions-resource nil))
 
-    (DELETE* "/assertions/:check_id" [check_id]
-      :summary "Deletes the assertions for a check."
-      (assertion-resource check_id nil))
+      (GET* "/:check_id" [check_id]
+        :summary "Retrieves the assertions for a check."
+        :return CheckAssertions
+        (assertion-resource check_id nil))
 
-    (PUT* "/assertions/:check_id" [check_id]
-      :summary "Replaces an assertion."
-      :body [assertions CheckAssertions]
-      :return CheckAssertions
-      (assertion-resource check_id assertions))
+      (DELETE* "/:check_id" [check_id]
+        :summary "Deletes the assertions for a check."
+        (assertion-resource check_id nil))
 
-    (GET* "/notifications/:id" []
-      :summary "Retrieves a notification."
-      :path-params [id :- Long]
-      :return Notification
-      (notification-resource id nil))
+      (PUT* "/:check_id" [check_id]
+        :summary "Replaces an assertion."
+        :body [assertions CheckAssertions]
+        :return CheckAssertions
+        (assertion-resource check_id assertions)))
 
-    (DELETE* "/notifications/:id" []
-      :summary "Deletes a notification."
-      :path-params [id :- Long]
-      (notification-resource id nil))
+    (context* "/notifications" []
+      :tags ["notifications"]
 
-    (GET* "/notifications" []
-      :summary "Gets a filtered list of notifications."
-      :query-params [{check-id :- s/Str nil}]
-      :return [Notification]
-      (notifications-resource nil check-id))
+      (GET* "/:id" []
+        :summary "Retrieves a notification."
+        :path-params [id :- Long]
+        :return Notification
+        (notification-resource id nil))
 
-    (POST* "/notifications" []
-      :summary "Create a new notification."
-      :body [notification Notification]
-      :return Notification
-      (notifications-resource notification nil))))
+      (DELETE* "/:id" []
+        :summary "Deletes a notification."
+        :path-params [id :- Long]
+        (notification-resource id nil))
+
+      (GET* "/" []
+        :summary "Gets a filtered list of notifications."
+        :query-params [{check-id :- s/Str nil}]
+        :return [Notification]
+        (notifications-resource nil check-id))
+
+      (POST* "/" []
+        :summary "Create a new notification."
+        :body [notification Notification]
+        :return Notification
+        (notifications-resource notification nil)))))
 
 (defn handler [pool config]
   (reset! db pool)
