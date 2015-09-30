@@ -100,8 +100,18 @@
                                 (modify-and-store-stage two-store "wow")
                                 (modify-and-store-stage three-store "whoa"))]
       (stream/start-pipeline! pipe)
-      (Thread/sleep 500)
+      (Thread/sleep 200)
       (stream/stop-pipeline! pipe)
       (.getCustomerId @one-store) => "hi"
       (.getCustomerId @two-store) => "hello"
-      (.getCustomerId @three-store) => "wow")))
+      (.getCustomerId @three-store) => "wow"))
+  (fact "doesn't require the last stage to call next"
+    (let [count (atom 0)
+          pipe (stream/pipeline (producer count 1)
+                                (count-stage count)
+                                (count-stage count)
+                                (terminal-stage))]
+      (stream/start-pipeline! pipe)
+      (Thread/sleep 200)
+      (stream/stop-pipeline! pipe)
+      true => true)))
