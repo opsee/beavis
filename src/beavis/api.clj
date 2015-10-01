@@ -19,12 +19,17 @@
 
 ;;;;;========== Resource Callbacks =========
 
+(defn not-delete? [ctx]
+  (not= (get-in ctx [:request :request-method]) :delete))
+
 (defn- cust-id [ctx]
   (-> ctx
       :login
       :customer_id))
 
-(defn- parse-if-int [v]
+(defmulti parse-if-int (fn [v] (class v)))
+(defmethod parse-if-int Integer [v] v)
+(defmethod parse-if-int String [v]
   (if (re-matches #"\d+" v)
     (Integer/parseInt v)
     v))
@@ -36,98 +41,124 @@
                        keyword) v]))
         record))
 
-(defn- lift-underscores [record]
-  (key-process record #(str/replace % #"_" "-")))
+(defn- operand-to-int [record]
+  (if (:operand record)
+    (update record :operand parse-if-int)
+    record))
 
-(defn- lower-dashes [record]
-  (key-process record #(str/replace % #"\-" "_")))
+(defn- do-bulk-inserts [customer-id check-id records method tx]
+  (let [inserts (for [rec records
+                      :let [record (assoc rec :check_id check-id :customer_id customer-id)]]
+                  (method tx record))]
+    (if (not-any? not inserts)
+      inserts
+      (do
+        (db-set-rollback-only! tx)
+        (ring-response {:status 500
+                        :body (generate-string {:errors "A database error occurred."})})))))
 
-(defn- clean-notification [record]
-  (-> record
-      (dissoc :customer_id)
-      lift-underscores))
-
-(defn records->check-assertions [records]
-  (vals (reduce (fn [acc rec]
-                  (let [check-id (:check_id rec)
-                        check-ass (-> (get acc check-id {:check-id check-id
-                                                         :assertions []})
-                                      (update :assertions conj
-                                              (-> (apply dissoc rec (conj
-                                                                      (for [[k v] rec :when (nil? v)] k)
-                                                                      :id :check_id :customer_id))
-                                                  (update :operand parse-if-int))))]
-                    (assoc acc check-id check-ass)))
-                {}
-                records)))
+(defn- records->rollups [records field-name]
+  (log/info "records" records)
+  (if (record? records)
+    records
+    (vals (reduce (fn [acc rec]
+                    (let [check-id (:check_id rec)
+                          check-ass (-> (get acc check-id {:check-id check-id
+                                                           field-name []})
+                                        (update field-name conj
+                                                (-> (apply dissoc rec (conj
+                                                                        (for [[k v] rec :when (nil? v)] k)
+                                                                        :id :check_id :customer_id))
+                                                    operand-to-int)))]
+                      (assoc acc check-id check-ass)))
+                  {}
+                  records))))
 
 (defn assertion-exists? [check-id]
   (fn [ctx]
     (let [check-assertion (-> (sql/get-assertions-by-check-and-customer @db {:check_id check-id
                                                                              :customer_id (cust-id ctx)})
-                              records->check-assertions
+                              (records->rollups :assertions)
                               first)]
+      (log/info "check-assertion" check-id check-assertion)
       {:assertions check-assertion})))
-
-(defn- do-assertion-inserts [customer-id check-id assertions tx]
-  (let [inserts (for [assertion (:assertions assertions)
-                      :let [record (assoc assertion :check_id check-id :customer_id customer-id)]]
-                  (sql/insert-into-assertions! tx record))]
-    {:assertions (if (not-any? not inserts)
-                   assertions
-                   (do
-                     (db-set-rollback-only! tx)
-                     (ring-response {:status 500
-                                     :body (generate-string {:errors "A database error occurred."})})))}))
 
 (defn update-assertion! [check-id assertions]
   (fn [ctx]
     (with-db-transaction [tx @db]
-      (sql/delete-assertion-by-check-and-customer! tx {:check_id check-id
-                                                       :customer_id (cust-id ctx)})
-      (do-assertion-inserts (cust-id ctx) check-id assertions tx))))
+      (sql/delete-assertions-by-check-and-customer! tx {:check_id check-id
+                                                        :customer_id (cust-id ctx)})
+      (let [asserts (first (records->rollups
+                             (do-bulk-inserts (cust-id ctx)
+                                              check-id
+                                              (:assertions assertions)
+                                              sql/insert-into-assertions<!
+                                              tx)
+                             :assertions))]
+        #(assoc ctx :assertions asserts)))))
 
 (defn delete-assertion! [check-id]
   (fn [ctx]
-    (sql/delete-assertion-by-check-and-customer! @db {:check_id check-id
-                                                      :customer_id (cust-id ctx)})))
+    (sql/delete-assertions-by-check-and-customer! @db {:check_id check-id
+                                                       :customer_id (cust-id ctx)})))
 
-(defn create-assertion [assertions]
+(defn create-assertion! [assertions]
   (fn [ctx]
     (with-db-transaction [tx @db]
       (let [check-id (:check-id assertions)]
-        (do-assertion-inserts (cust-id ctx) check-id assertions tx)))))
+        {:assertions (first (records->rollups
+                       (do-bulk-inserts (cust-id ctx)
+                                        check-id
+                                        (:assertions assertions)
+                                        sql/insert-into-assertions<!
+                                        tx)
+                       :assertions))}))))
 
 (defn list-assertions [ctx]
-  (records->check-assertions (sql/get-assertions-by-customer @db (cust-id ctx))))
+  (records->rollups (sql/get-assertions-by-customer @db (cust-id ctx)) :assertions))
 
-(defn notification-exists? [id]
+(defn notification-exists? [check-id]
   (fn [ctx]
-    {:notification (-> (sql/get-notification-by-customer-and-id @db {:customer_id (cust-id ctx)
-                                                                     :id id})
-                       first
-                       clean-notification)}))
+    (let [check-notification (-> (sql/get-notifications-by-check-and-customer @db {:check_id check-id
+                                                                                   :customer_id (cust-id ctx)})
+                                 (records->rollups :notifications)
+                                 first)]
+      (log/info "notifications" check-id check-notification)
+      {:notifications check-notification})))
 
-(defn create-notification [notification]
+(defn update-notification! [check-id notifications]
   (fn [ctx]
-    {:notification (-> (sql/insert-into-notifications<! @db (-> notification
-                                                                (assoc :customer-id (cust-id ctx))
-                                                                lower-dashes))
-                       (dissoc :customer_id)
-                       lift-underscores)}))
+    (with-db-transaction [tx @db]
+      (sql/delete-notifications-by-check-and-customer! tx {:check_id check-id
+                                                           :customer_id (cust-id ctx)})
+      (let [notifs (first (records->rollups
+                            (do-bulk-inserts (cust-id ctx)
+                                             check-id
+                                             (:notifications notifications)
+                                             sql/insert-into-notifications<!
+                                             tx)
+                            :notifications))]
+        #(assoc ctx :notifications notifs)))))
 
-(defn delete-notification! [id]
+(defn delete-notification! [check-id]
   (fn [ctx]
-    (sql/delete-notification-by-customer-and-id! @db {:id id
-                                                      :customer_id (cust-id ctx)})))
+    (sql/delete-notifications-by-check-and-customer! @db {:check_id check-id
+                                                          :customer_id (cust-id ctx)})))
 
-(defn list-notifications [check-id]
+(defn create-notification! [notifications]
   (fn [ctx]
-    (map clean-notification
-         (if check-id
-           (sql/get-notifications-by-customer-and-check-id @db {:customer_id (cust-id ctx)
-                                                                :check_id check-id})
-           (sql/get-notifications-by-customer @db (cust-id ctx))))))
+    (with-db-transaction [tx @db]
+      (let [check-id (:check-id notifications)]
+        {:notifications (first (records->rollups
+                          (do-bulk-inserts (cust-id ctx)
+                                           check-id
+                                           (:notifications notifications)
+                                           sql/insert-into-notifications<!
+                                           tx)
+                          :notifications))}))))
+
+(defn list-notifications [ctx]
+  (records->rollups (sql/get-notifications-by-customer @db (cust-id ctx)) :notifications))
 
 ;;;;;========== Resource Defs =========
 
@@ -138,7 +169,7 @@
 
 (defresource assertions-resource [assertions] defaults
   :allowed-methods [:get :post]
-  :post! (create-assertion assertions)
+  :post! (create-assertion! assertions)
   :handle-created :assertions
   :handle-ok list-assertions)
 
@@ -148,20 +179,23 @@
   :put! (update-assertion! check_id assertions)
   :delete! (delete-assertion! check_id)
   :new? false
+  :respond-with-entity? not-delete?
   :handle-ok :assertions)
 
-(defresource notifications-resource [notification check-id] defaults
+(defresource notifications-resource [notifications] defaults
   :allowed-methods [:get :post]
-  :post! (create-notification notification)
-  :handle-created :notification
-  :handle-ok (list-notifications check-id))
+  :post! (create-notification! notifications)
+  :handle-created :notifications
+  :handle-ok list-notifications)
 
-(defresource notification-resource [id notification] defaults
-  :allowed-methods [:get :delete]
-  :exists? (notification-exists? id)
-  :delete! (delete-notification! id)
+(defresource notification-resource [check_id notifications] defaults
+  :allowed-methods [:get :put :delete]
+  :exists? (notification-exists? check_id)
+  :put! (update-notification! check_id notifications)
+  :delete! (delete-notification! check_id)
   :new? false
-  :handle-ok :notification)
+  :respond-with-entity? not-delete?
+  :handle-ok :notifications)
 
 ;;;;;========== Schema Defs ============
 
@@ -176,10 +210,12 @@
    :assertions [Assertion]})
 
 (s/defschema Notification
-  {(s/optional-key :id) s/Num
-   :check-id            s/Str
-   :type                s/Str
+  {:type                s/Str
    :value               s/Str})
+
+(s/defschema CheckNotifications
+  {:check-id      s/Str
+   :notifications [Notification]})
 
 ;;;;;============ Routes ===============
 
@@ -228,28 +264,31 @@
     (context* "/notifications" []
       :tags ["notifications"]
 
-      (GET* "/:id" []
-        :summary "Retrieves a notification."
-        :path-params [id :- Long]
-        :return Notification
-        (notification-resource id nil))
-
-      (DELETE* "/:id" []
-        :summary "Deletes a notification."
-        :path-params [id :- Long]
-        (notification-resource id nil))
-
       (GET* "/" []
-        :summary "Gets a filtered list of notifications."
-        :query-params [{check-id :- s/Str nil}]
-        :return [Notification]
-        (notifications-resource nil check-id))
+        :summary "Retrieve all of a customer's notifications"
+        :return [CheckNotifications]
+        (notifications-resource nil))
 
       (POST* "/" []
         :summary "Create a new notification."
-        :body [notification Notification]
-        :return Notification
-        (notifications-resource notification nil)))))
+        :body [notification CheckNotifications]
+        :return CheckNotifications
+        (notifications-resource notification))
+
+      (GET* "/:check_id" [check_id]
+        :summary "Retrieves a notification."
+        :return CheckNotifications
+        (notification-resource check_id nil))
+
+      (DELETE* "/:check_id" [check_id]
+        :summary "Deletes a notification."
+        (notification-resource check_id nil))
+
+      (PUT* "/:check_id" [check_id]
+        :summary "Replaces a notification."
+        :body [notifications CheckNotifications]
+        :return CheckNotifications
+        (notification-resource check_id notifications)))))
 
 (defn handler [pool config]
   (reset! db pool)
