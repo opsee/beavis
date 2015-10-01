@@ -6,6 +6,8 @@ pom.xml.asc
 *.jar
 *.class
 /.nrepl-port
+/.lein-repl-history
+.tags
 .hgignore
 .hg/
 .idea
