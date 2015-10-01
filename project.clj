@@ -4,6 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :main ^:skip-aot beavis.core
+  :java-source-paths ["src"]
   :profiles {:uberjar {:aot :all}
              :dev {:dependencies [[midje "1.6.3"]
                                   [clj-http-fake "1.0.1"]
@@ -19,6 +20,8 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [io.nodyn/nodyn "0.1.1-SNAPSHOT"]
                  [riemann "0.2.10"]
+                 [com.google.protobuf/protobuf-java "3.0.0-alpha-3.1"]
+                 [io.grpc/grpc-all "0.7.2"]
                  [co.opsee/opsee-middleware "0.1.0-SNAPSHOT"]
                  [com.github.brainlag/nsq-client "1.0.0-SNAPSHOT"]
                  [yesql "0.4.1-SNAPSHOT"]
