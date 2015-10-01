@@ -102,9 +102,9 @@
       (stream/start-pipeline! pipe)
       (Thread/sleep 200)
       (stream/stop-pipeline! pipe)
-      (.getCustomerId @one-store) => "hi"
-      (.getCustomerId @two-store) => "hello"
-      (.getCustomerId @three-store) => "wow"))
+      (:customer_id @one-store) => "hi"
+      (:customer_id @two-store) => "hello"
+      (:customer_id @three-store) => "wow"))
   (fact "doesn't require the last stage to call next"
     (let [count (atom 0)
           pipe (stream/pipeline (producer count 1)
