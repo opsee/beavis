@@ -1,7 +1,6 @@
 (ns beavis.stream
   (:require [clojure.tools.logging :as log])
-  (:import (co.opsee.proto CheckResult)
-           (java.util.concurrent ForkJoinPool TimeUnit ForkJoinTask)
+  (:import (java.util.concurrent ForkJoinPool TimeUnit ForkJoinTask)
            (java.util.concurrent.atomic AtomicLongArray)))
 
 (defprotocol StreamProducer

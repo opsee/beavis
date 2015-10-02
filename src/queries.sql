@@ -1,4 +1,4 @@
---name: insert-into-assertions!
+--name: insert-into-assertions<!
 -- Inserts a new record into the assertions table.
 insert into assertions (check_id, customer_id, relationship, "key", "value", operand) values
         (:check_id, :customer_id::uuid, :relationship::relationship_type, :key, :value, :operand);
@@ -14,7 +14,7 @@ select * from assertions where customer_id=:customer_id::uuid;
 --name: get-assertions-by-check
 select * from assertions where check_id=:check_id;
 
---name: delete-assertion-by-check-and-customer!
+--name: delete-assertions-by-check-and-customer!
 -- Deletes an assertion.
 delete from assertions where check_id=:check_id and customer_id=:customer_id::uuid;
 
@@ -24,17 +24,14 @@ delete from assertions where check_id=:check_id and customer_id=:customer_id::uu
 insert into notifications (check_id, customer_id, type, "value") values
         (:check_id, :customer_id::uuid, :type, :value);
 
---name: get-notification-by-customer-and-id
-select * from notifications where customer_id=:customer_id::uuid and id=:id;
-
---name: get-notification-by-id
-select * from notifications where id=:id;
-
---name: delete-notification-by-customer-and-id!
-delete from notifications where customer_id=:customer_id::uuid and id=:id;
-
---name: get-notifications-by-customer-and-check-id
+--name: get-notifications-by-check-and-customer
 select * from notifications where customer_id=:customer_id::uuid and check_id=:check_id;
 
 --name: get-notifications-by-customer
 select * from notifications where customer_id=:customer_id::uuid;
+
+--name: get-notifications-by-check
+select * from notifications where check_id=:check_id;
+
+--name: delete-notifications-by-check-and-customer!
+delete from notifications where customer_id=:customer_id::uuid and check_id=:check_id;
