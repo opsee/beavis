@@ -8,8 +8,8 @@
   There can only be one StreamProducer per pipeline."
   (start-producer! [this next]
     "This method starts any connections needed for submitting work into the pipeline.
-    Next is an fn that takes a single parameter, the next CheckResult. Start-producer!
-    is called from the main thread and is expected not to block.")
+    Next is an fn that takes a single parameter, a mapified version of a CheckResult.
+    Start-producer! is called from the main thread and is expected not to block.")
   (stop-producer! [this]
     "Cleans up any resources used by this producer. Must not return until the producer
     is completely shut down and drained, ie next will not be called again."))
@@ -23,10 +23,10 @@
   (stop-stage! [this]
     "Stop method for any resources this stage may manage. The pipeline guarantees that no
     other calls to submit will be active when stop-stage! gets called.")
-  (submit [this ^CheckResult work next]
+  (submit [this work next]
     "Submit implements the work that this stream stage is meant to perform. Generally, submit
     should not block and you cannot make predictions about which thread will be calling.
-    Submit must also be threadsafe. Next is an fn which takes the transformed CheckResult
+    Submit must also be threadsafe. Next is an fn which takes the transformed CheckResult-map
     and submits it to the next stage of the stream. If the stream stage is terminal, next
     needn't be called, however it will not fail regardless."))
 
