@@ -1,7 +1,6 @@
 (ns beavis.stream
   (:require [clojure.tools.logging :as log])
-  (:import (java.util.concurrent ForkJoinPool TimeUnit ForkJoinTask)
-           (java.util.concurrent.atomic AtomicLongArray)))
+  (:import (java.util.concurrent ForkJoinPool ForkJoinTask)))
 
 (defprotocol StreamProducer
   "The StreamProducer gets messages from the outside world and submits them into the pipeline.
@@ -14,15 +13,19 @@
     "Cleans up any resources used by this producer. Must not return until the producer
     is completely shut down and drained, ie next will not be called again."))
 
-(defprotocol StreamStage
-  "StreamStages perform transformations on CheckResults. Anything wishing to operate on
-  CheckResults should implement StreamStage. StreamStages are then composed together
-  via the pipeline function."
+(defprotocol ManagedStage
+  "Stream stages extending the ManagedStage protocol can initialize or cleanup any resources
+  that they might require."
   (start-stage! [this]
     "Start method for any resources this stage may manage.")
   (stop-stage! [this]
     "Stop method for any resources this stage may manage. The pipeline guarantees that no
-    other calls to submit will be active when stop-stage! gets called.")
+    other calls to submit will be active when stop-stage! gets called."))
+
+(defprotocol StreamStage
+  "StreamStages perform transformations on CheckResults. Anything wishing to operate on
+  CheckResults should implement StreamStage. StreamStages are then composed together
+  via the pipeline function."
   (submit [this work next]
     "Submit implements the work that this stream stage is meant to perform. Generally, submit
     should not block and you cannot make predictions about which thread will be calling.
@@ -79,7 +82,8 @@
     (reify Pipeline
       (start-pipeline! [_]
         (doseq [stage stages]
-          (start-stage! stage))
+          (when (satisfies? ManagedStage stage)
+            (start-stage! stage)))
         (start-producer! producer (first callbacks)))
       (stop-pipeline! [_]
         ;first stop the producer which will wait until it's drained
@@ -87,6 +91,7 @@
         (let [idv (map vector (iterate inc 0) stages)]
           (wait-for-drain count)
           (doseq [[index stage] idv]
-            (stop-stage! stage)))
+            (when (satisfies? ManagedStage stage)
+              (stop-stage! stage))))
         ;then tell the fjp to stop accepting tasks
         (.shutdown pool)))))

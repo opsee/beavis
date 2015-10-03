@@ -32,31 +32,23 @@
 
 (defn order-stage [order i]
   (reify StreamStage
-    (start-stage! [_])
-    (stop-stage! [_])
     (submit [_ work next]
       (swap! order conj i)
       (next work))))
 
 (defn count-stage [count]
   (reify StreamStage
-    (start-stage! [_])
-    (stop-stage! [_])
     (submit [_ work next]
       (swap! count inc)
       (next work))))
 
 (defn terminal-stage []
   (reify StreamStage
-    (start-stage! [_])
-    (stop-stage! [_])
     (submit [_ work next]
       )))
 
 (defn modify-and-store-stage [storage cust-id]
   (reify StreamStage
-    (start-stage! [_])
-    (stop-stage! [_])
     (submit [_ work next]
       (reset! storage work)
       (next (-> (.toBuilder work)
