@@ -1,5 +1,5 @@
 (ns beavis.consumer
-  (:require [beavis.protobuilder :refer :all]
+  (:require [beavis.protobuilder :as proto]
             [beavis.stream :refer :all]
             [clojure.walk :refer [keywordize-keys]]
             [clojure.tools.logging :as log])
@@ -9,11 +9,12 @@
            (co.opsee.proto CheckResult)))
 
 (def consumer (atom nil))
+(proto/set-format "Timestamp" "int64")
 
 (defn convert-message [msg]
   (let [bytes (.getMessage msg)]
      (-> (CheckResult/parseFrom bytes)
-         (proto->hash)
+         (proto/proto->hash)
          (keywordize-keys))))
 
 (defn handle-message [next]

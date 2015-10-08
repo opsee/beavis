@@ -86,6 +86,7 @@
   index argument will allow you to create multiple successive events."
   (-> (CheckResult/newBuilder)
       (.setCheckId "check_id")
+      (.setCustomerId "customer")
       (.setTarget (-> (Target/newBuilder)
                       (.setName "sg")
                       (.setType "sg")
