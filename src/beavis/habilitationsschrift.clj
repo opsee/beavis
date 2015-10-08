@@ -5,14 +5,31 @@
             [riemann.bin]
             [riemann.config :refer [core]]
             [riemann.core]
+            [riemann.index :as index]
             [riemann.pubsub :refer [PubSub]]
             [riemann.streams]
             [riemann.time]
             [beavis.stream :refer :all]
             [clojure.tools.logging :as log]))
 
+(defn to-event [result response]
+  (assoc response
+    :host (get-in response [:target :id])
+    :service (:check_id result)
+    :time (:timestamp result)))
+
+(defn to-riemann-event [work]
+    (let [event (assoc work :responses (map #(to-event work %) (:responses work)))]
+      (to-event event work)))
+
 (defn handle-event [work next]
-  (next (riemann.core/stream! @core work)))
+  (let [event (to-riemann-event work)
+        index (:index @core)
+        host (:host event)
+        service (:service event)]
+    ;; The streams that update the index must be synchronous.
+    (riemann.core/stream! @core event)
+    (next (index/lookup index host service))))
 
 (defn CoreStreamer [threadCount]
   (reify
