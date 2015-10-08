@@ -7,9 +7,7 @@
             [riemann.config :refer [core]]
             [riemann.logging :as logging]
             [clojure.tools.logging :as log])
-  (:import (co.opsee.proto CheckResult CheckResponse Target Timestamp Any HttpResponse)
-           (beavis.stream StreamStage)
-           (clojure.lang PersistentArrayMap)))
+  (:import (clojure.lang  PersistentHashMap)))
 
 (def received-event (atom false))
 (def core-stream (atom nil))
@@ -18,6 +16,9 @@
   (reset! received-event true)
   event)
 (set-format "Timestamp" "int64")
+
+(defn set-passing [result]
+  (assoc result :responses (map #(assoc % :passing (if (= 200 (get-in % [:response :value :code])) true false)) (:responses result))))
 
 (logging/suppress
   ["riemann.core" "riemann.pubsub"]
@@ -57,5 +58,11 @@
               (let [events (map #(proto->hash (check-result 3 3 %)) (range 1 4))]
                 (map #(s/submit @core-stream % next-callback) events)
                 (let [r (s/submit @core-stream result-map next-callback)]
-                  (type r) => PersistentArrayMap
-                  (:time r) => (:timestamp result-map))))))))
+                  (type r) => PersistentHashMap
+                  (:time r) => (:timestamp result-map)))))
+      (let [result-map (set-passing (proto->hash (check-result 3 1 0)))]
+        (fact "the state of each response is set in the index"
+              (count (filter #(:state %) (:responses (s/submit @core-stream result-map next-callback)))) => 1)
+        (fact "the state of a result with multiple failing responses is failing"
+              (:state (s/submit @core-stream result-map next-callback)) => false
+              (:passing (s/submit @core-stream result-map next-callback)) => false)))))
