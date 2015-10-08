@@ -95,8 +95,8 @@
       (.setTimestamp (-> (Timestamp/newBuilder)
                          (.setSeconds (* check-index 30))
                          .build))
-      (.addAllResponses (conj (apply vec
-                                     (map #(check-response % true) (range 0 passing-count))
-                                     (map #(check-response % false) (range 0 (- num-responses passing-count))))))
+      (.addAllResponses (concat
+                          (map #(check-response % true) (range 0 passing-count))
+                          (map #(check-response % false) (range passing-count num-responses))))
       .build
       ))
