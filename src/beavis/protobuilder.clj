@@ -103,8 +103,14 @@
           (.setField builder field (value-converter v builder field)))))
     (.build builder)))
 
+(def format-map (atom {}))
+(defn set-format [type format]
+  (swap! format-map assoc type format))
+
 (defn- format-timestamp [^Timestamp t]
-  (f/unparse (f/formatters :date-time-no-ms) (DateTime. (* 1000 (.getSeconds t)))))
+  (case (get @format-map "Timestamp")
+    "int64" (.getSeconds t)
+    (f/unparse (f/formatters :date-time-no-ms) (DateTime. (* 1000 (.getSeconds t))))))
 
 (defn- any->hash [^Any any]
   (let [type (.getTypeUrl any)
@@ -112,6 +118,7 @@
         proto (Reflector/invokeStaticMethod clazz "parseFrom" (to-array [(.getValue any)]))]
     {:type_url type
      :value (proto->hash proto)}))
+
 
 (defn- unpack-value [^Descriptors$FieldDescriptor field value]
   (case-enum (.getJavaType field)

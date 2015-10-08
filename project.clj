@@ -19,7 +19,9 @@
                               :passphrase :env}]]
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [io.nodyn/nodyn "0.1.1-SNAPSHOT"]
-                 [riemann "0.2.10"]
+                 [com.fasterxml.jackson.core/jackson-core "2.2.3"]
+                 [com.fasterxml.jackson.core/jackson-databind "2.2.3"]
+                 [riemann "0.2.10" :exclusions [com.fasterxml.jackson.core/jackson-databind com.fasterxml.jackson.core/jackson-core]]
                  [com.google.protobuf/protobuf-java "3.0.0-alpha-3.1"]
                  [io.grpc/grpc-all "0.7.2"]
                  [co.opsee/opsee-middleware "0.1.0-SNAPSHOT"]
@@ -27,4 +29,4 @@
                  [yesql "0.4.1-SNAPSHOT"]
                  [org.postgresql/postgresql "9.4-1202-jdbc42"]
                  [instaparse "1.4.1"]
-                 [metosin/compojure-api "0.22.0"]])
+                 [metosin/compojure-api "0.22.0" :exclusions [com.fasterxml.jackson.core/jackson-core com.fasterxml.jackson.core/jackson-databind]]])
