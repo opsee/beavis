@@ -3,7 +3,6 @@ checkout:
     - git submodule sync
     - git submodule update --init
 dependencies:
-    - npm
   override:
     - docker info
     - docker pull quay.io/opsee/build-clj
