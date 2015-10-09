@@ -18,6 +18,9 @@ select * from assertions where check_id=:check_id;
 -- Deletes an assertion.
 delete from assertions where check_id=:check_id and customer_id=:customer_id::uuid;
 
+--name: get-assertions
+select * from assertions;
+
 ----------------------------------------------
 
 --name: insert-into-notifications<!
@@ -35,3 +38,6 @@ select * from notifications where check_id=:check_id;
 
 --name: delete-notifications-by-check-and-customer!
 delete from notifications where customer_id=:customer_id::uuid and check_id=:check_id;
+
+--name: get-notifications
+select * from notifications;

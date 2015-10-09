@@ -47,7 +47,7 @@
                                                                                      :value        "content-type"
                                                                                      :relationship "equal"
                                                                                      :operand      "text/plain"})
-                                                                              (just {:key          "statusCode"
+                                                                              (just {:key          "code"
                                                                                      :relationship "equal"
                                                                                      :operand      200})] :in-any-order)})
                                                 (just {:check-id   "check2"
@@ -55,12 +55,12 @@
                                                                                      :value        "vary"
                                                                                      :relationship "equal"
                                                                                      :operand      "origin"})
-                                                                              (just {:key          "statusCode"
+                                                                              (just {:key          "code"
                                                                                      :relationship "notEqual"
                                                                                      :operand      500})] :in-any-order)})] :in-any-order))))
     (fact "posts new assertions"
       (let [response ((app) (-> (mock/request :post "/assertions" (generate-string {:check-id   "abc123"
-                                                                                    :assertions [{:key          "statusCode"
+                                                                                    :assertions [{:key          "code"
                                                                                                   :relationship "equal"
                                                                                                   :operand      200}
                                                                                                  {:key          "header"
@@ -71,7 +71,7 @@
                                 (mock/header "Content-Type" "application/json")))]
         (:status response) => 201
         (:body response) => (is-json (just {:check-id   "abc123"
-                                            :assertions (just [(just {:key          "statusCode"
+                                            :assertions (just [(just {:key          "code"
                                                                       :relationship "equal"
                                                                       :operand      200})
                                                                (just {:key          "header"
@@ -79,7 +79,7 @@
                                                                       :relationship "notEqual"
                                                                       :operand      "application/json"})]
                                                               :in-any-order)}))
-        (sql/get-assertions-by-check @db "abc123") => (contains [(contains {:key          "statusCode"
+        (sql/get-assertions-by-check @db "abc123") => (contains [(contains {:key          "code"
                                                                             :relationship "equal"
                                                                             :operand      "200"})
                                                                  (contains {:key          "header"
@@ -102,7 +102,7 @@
                                                                           :value "content-type"
                                                                           :relationship "equal"
                                                                           :operand "text/plain"})
-                                                                   (just {:key "statusCode"
+                                                                   (just {:key "code"
                                                                           :relationship "equal"
                                                                           :operand 200})]
                                                                   :in-any-order)}))))
@@ -113,7 +113,7 @@
         (sql/get-assertions-by-check @db "hello") => empty?))
     (fact "replaces an assertion"
       (let [response ((app) (-> (mock/request :put "/assertions/hello" (generate-string {:check-id "hello"
-                                                                                         :assertions [{:key          "statusCode"
+                                                                                         :assertions [{:key          "code"
                                                                                                        :relationship "notEqual"
                                                                                                        :operand      500}]}))
                                 (mock/header "Authorization" auth-header)))]
@@ -121,7 +121,7 @@
         (:body response) => (is-json (just {:check-id "hello"
                                             :assertions (just [(contains {:relationship "notEqual"
                                                                           :operand 500})])}))
-        (sql/get-assertions-by-check @db "hello") => (just [(contains {:key          "statusCode"
+        (sql/get-assertions-by-check @db "hello") => (just [(contains {:key          "code"
                                                                        :relationship "notEqual"
                                                                        :operand      "500"})])))))
 
