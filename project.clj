@@ -9,6 +9,7 @@
              :dev {:dependencies [[midje "1.6.3"]
                                   [clj-http-fake "1.0.1"]
                                   [ring/ring-mock "0.2.0"]]
+                   ;:jvm-opts ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5006"]
                    :plugins [[lein-midje "3.0.0"]]}}
   :plugins [[s3-wagon-private "1.1.2"]]
   :repositories [["snapshots" {:url "s3p://opsee-maven-snapshots/snapshot"
@@ -29,4 +30,6 @@
                  [yesql "0.4.1-SNAPSHOT"]
                  [org.postgresql/postgresql "9.4-1202-jdbc42"]
                  [instaparse "1.4.1"]
+                 [clj-wallhack "1.0.1"]
                  [metosin/compojure-api "0.22.0" :exclusions [com.fasterxml.jackson.core/jackson-core com.fasterxml.jackson.core/jackson-databind]]])
+

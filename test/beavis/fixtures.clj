@@ -14,7 +14,7 @@
                                     :operand "text/plain"})
   (sql/insert-into-assertions<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
                                     :check_id "hello"
-                                    :key "statusCode"
+                                    :key "code"
                                     :relationship "equal"
                                     :operand "200"})
   (sql/insert-into-assertions<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
@@ -25,9 +25,14 @@
                                     :operand "origin"})
   (sql/insert-into-assertions<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
                                     :check_id "check2"
-                                    :key "statusCode"
+                                    :key "code"
                                     :relationship "notEqual"
-                                    :operand "500"}))
+                                    :operand "500"})
+  (sql/insert-into-assertions<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                                    :check_id "goodcheck"
+                                    :key "code"
+                                    :relationship "equal"
+                                    :operand "200"}))
 
 (defn notification-fixtures [db]
   (sql/insert-into-notifications<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
@@ -79,24 +84,26 @@
         (.setResponse (if passing (passing-response) (failing-response)))
         .build)))
 
-(defn check-result [num-responses passing-count check-index]
+(defn check-result
   "check-result will produce a CheckResult object. It prepopulates
   with a security group target that yields multiple responses. The
   result will have num-responses associated responses. The check
   index argument will allow you to create multiple successive events."
-  (-> (CheckResult/newBuilder)
-      (.setCheckId "check_id")
-      (.setCustomerId "customer")
-      (.setTarget (-> (Target/newBuilder)
-                      (.setName "sg")
-                      (.setType "sg")
-                      (.setId "sg-sgsgsg")
-                      .build))
-      (.setTimestamp (-> (Timestamp/newBuilder)
-                         (.setSeconds (* check-index 30))
-                         .build))
-      (.addAllResponses (concat
-                          (map #(check-response % true) (range 0 passing-count))
-                          (map #(check-response % false) (range passing-count num-responses))))
-      .build
-      ))
+  ([num-responses passing-count check-index]
+   (check-result "check_id" num-responses passing-count check-index))
+  ([check-id num-responses passing-count check-index]
+   (-> (CheckResult/newBuilder)
+       (.setCustomerId "customer")
+       (.setCheckId check-id)
+       (.setTarget (-> (Target/newBuilder)
+                       (.setName "sg")
+                       (.setType "sg")
+                       (.setId "sg-sgsgsg")
+                       .build))
+       (.setTimestamp (-> (Timestamp/newBuilder)
+                          (.setSeconds (* check-index 30))
+                          .build))
+       (.addAllResponses (concat
+                           (map #(check-response % true) (range 0 passing-count))
+                           (map #(check-response % false) (range passing-count num-responses))))
+       .build)))

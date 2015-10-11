@@ -8,7 +8,7 @@
            (java.nio ByteBuffer)
            (io.netty.buffer ByteBuf)
            (clojure.lang Reflector)
-           (co.opsee.proto Any Timestamp BastionProto)
+           (co.opsee.proto Any Timestamp BastionProto HttpResponse)
            (org.joda.time DateTime)))
 
 (defn- byte-string [buf]
@@ -146,3 +146,8 @@
                [(keyword (.getName desc)) (unpack-repeated-or-single desc value)]))
         (.getAllFields proto)))
 
+
+(defmulti decode-any (fn [^Any any] (.getTypeUrl any)))
+
+(defmethod decode-any "HttpResponse" [^Any any]
+  (HttpResponse/parseFrom (.getValue any)))
