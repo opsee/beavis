@@ -11,6 +11,7 @@
             [schema.core :as s]
             [beavis.sql :as sql]
             [clojure.string :as str]
+            [compojure.route :as rt]
             [compojure.api.sweet :refer :all]))
 
 ;;;;;========== Globals (eat my ass) ======
@@ -288,7 +289,8 @@
         :summary "Replaces a notification."
         :body [notifications CheckNotifications]
         :return CheckNotifications
-        (notification-resource check_id notifications)))))
+        (notification-resource check_id notifications))))
+  (rt/not-found "Not found."))
 
 (defn handler [pool config]
   (reset! db pool)
