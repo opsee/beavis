@@ -31,7 +31,7 @@
                    (doseq [response (.getResponsesList work)]
                      (when (.getPassing response)
                        (swap! passing inc))))]
-        (slate/load-assertions assertions)
+        (slate/load-assertions @db assertions)
         (stream/start-stage! slate-stage)
         (stream/submit slate-stage results next)
         @passing => 3))
@@ -44,7 +44,7 @@
                    (doseq [response (.getResponsesList work)]
                      (when (.getPassing response)
                        (swap! passing inc))))]
-        (slate/load-assertions assertions)
+        (slate/load-assertions @db assertions)
         (stream/start-stage! slate-stage)
         (stream/submit slate-stage results next)
         @passing => 0))
@@ -57,7 +57,7 @@
                    (doseq [response (.getResponsesList work)]
                      (when (= true (.getPassing response))
                        (swap! passing inc))))]
-        (slate/load-assertions assertions)
+        (slate/load-assertions @db assertions)
         (stream/start-stage! slate-stage)
         (stream/submit slate-stage results next)
         @passing => 1))))
