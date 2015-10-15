@@ -9,6 +9,7 @@
             [liberator.core :refer [resource defresource]]
             [liberator.representation :refer [ring-response]]
             [schema.core :as s]
+            [verschlimmbesserung.core :as v]
             [beavis.sql :as sql]
             [clojure.string :as str]
             [compojure.route :as rt]
@@ -17,8 +18,14 @@
 ;;;;;========== Globals (eat my ass) ======
 
 (def db (atom nil))
+(def etcd-client (atom nil))
 
 ;;;;;========== Resource Callbacks =========
+
+(defn notify-assertions-reload []
+  (try
+    (v/reset! @etcd-client "/opsee.co/assertions" "reload")
+    (catch Exception ex (log/error "" ex))))
 
 (defn not-delete? [ctx]
   (not= (get-in ctx [:request :request-method]) :delete))
@@ -105,15 +112,17 @@
 
 (defn create-assertion! [assertions]
   (fn [ctx]
-    (with-db-transaction [tx @db]
-      (let [check-id (:check-id assertions)]
-        {:assertions (first (records->rollups
-                       (do-bulk-inserts (cust-id ctx)
-                                        check-id
-                                        (:assertions assertions)
-                                        sql/insert-into-assertions<!
-                                        tx)
-                       :assertions))}))))
+    (let [ret (with-db-transaction [tx @db]
+                (let [check-id (:check-id assertions)]
+                  {:assertions (first (records->rollups
+                                        (do-bulk-inserts (cust-id ctx)
+                                                         check-id
+                                                         (:assertions assertions)
+                                                         sql/insert-into-assertions<!
+                                                         tx)
+                                        :assertions))}))]
+    (notify-assertions-reload)
+    ret)))
 
 (defn list-assertions [ctx]
   (records->rollups (sql/get-assertions-by-customer @db (cust-id ctx)) :assertions))
@@ -294,6 +303,7 @@
 
 (defn handler [pool config]
   (reset! db pool)
+  (reset! etcd-client (v/connect (:etcd config)))
   (-> beavis-api
       log-request
       log-response

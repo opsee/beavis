@@ -15,8 +15,8 @@
 
 (defrecord Assertion [key value relationship operand])
 
-(defn load-assertions [target]
-  (->> (sql/get-assertions @db)
+(defn load-assertions [pool target]
+  (->> (sql/get-assertions pool)
        (reduce (fn [acc record]
                  (let [check-id (:check_id record)
                        recs (get acc check-id [])]
@@ -35,14 +35,13 @@
 (defn run-assertions [test-assertion runtime assertions response]
   (not-any? not (map #(run-assertion test-assertion runtime % response) assertions)))
 
-(defn slate-stage [db-pool]
+(defn slate-stage [db-pool assertions]
   (let [factory (RuntimeFactory/init (-> (Object.)
                                          .getClass
                                          .getClassLoader)
                                      RuntimeFactory$RuntimeType/DYNJS)
         nodyn (.newRuntime factory (NodynConfig.))
         runtime (hack/field DynJSRuntime :runtime nodyn)
-        assertions (atom nil)
         slate (atom nil)]
     (reset! db db-pool)
     (reify
@@ -50,7 +49,6 @@
       (start-stage! [_]
         (let [barrier (CyclicBarrier. 2)]
           (.runAsync nodyn (reify Callback (call [_ _] (.await barrier))))
-          (load-assertions assertions)
           (.await barrier)
           (.evaluate runtime "load('jvm-npm.js');")
           (reset! slate (.evaluate runtime "require('./js/slate/index');"))))

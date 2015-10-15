@@ -28,6 +28,7 @@
                  [co.opsee/opsee-middleware "0.1.0-SNAPSHOT"]
                  [com.github.brainlag/nsq-client "1.0.0-SNAPSHOT"]
                  [yesql "0.4.1-SNAPSHOT"]
+                 [verschlimmbesserung "0.1.2"]
                  [org.postgresql/postgresql "9.4-1202-jdbc42"]
                  [instaparse "1.4.1"]
                  [clj-wallhack "1.0.1"]
