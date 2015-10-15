@@ -17,7 +17,7 @@
   },
   "etcd":"{{ETCD}}",
   "nsq":{
-    "lookup":{{NSQ_LOOKUP}},
-    "produce":{{NSQ_PRODUCE}}
+    "lookup":{{{NSQ_LOOKUP}}},
+    "produce":{{{NSQ_PRODUCE}}}
   }
 }
