@@ -13,6 +13,13 @@
 (def consumer (atom nil))
 (proto/set-format "Timestamp" "int64")
 
+(defn ensure-int [val]
+  (if (= String (class val))
+    (try
+      (Integer/parseInt val)
+      (catch Exception _ 0))
+    val))
+
 (defn nsq-lookup [lookup-addr produce-addr]
   (let [proxy (proxy [DefaultNSQLookup] []
                 (lookup [topic]
@@ -20,9 +27,9 @@
                     (proxy-super lookup topic)
                     (catch IOException _
                       (let [set (Sets/newHashSet)]
-                        (.add set (ServerAddress. (:host produce-addr) (:port produce-addr)))
+                        (.add set (ServerAddress. (:host produce-addr) (ensure-int (:port produce-addr))))
                         set)))))]
-    (.addLookupAddress proxy (:host lookup-addr) (:port lookup-addr))
+    (.addLookupAddress proxy (:host lookup-addr) (ensure-int (:port lookup-addr)))
     proxy))
 
 (defn convert-message [msg]

@@ -9,6 +9,7 @@
       [project]
       (let [jar-path (get-jar-filename project :standalone)]
            (sh "cp" jar-path "docker/lib/beavis.jar")
+           (sh "tar" "-czf" "docker/slate.tar.gz" "-C" "js" "slate")
            (let [docker (sh "docker" "build" "-t" "quay.io/opsee/beavis" "docker")
                  git-ref (sh "git" "rev-parse" "--verify" "HEAD")]
                 (if-not (= 0 (:exit git-ref))
