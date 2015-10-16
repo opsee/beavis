@@ -15,8 +15,9 @@
   "server":{
     "port":2020
   },
+  "etcd":"{{ETCD}}",
   "nsq":{
-    "lookup":"{{NSQ_LOOKUP}}",
-    "produce":"{{NSQ_PRODUCE}}"
+    "lookup":{"host":"{{NSQ_LOOKUP_HOST}}","port":"{{NSQ_LOOKUP_PORT}}"},
+    "produce":{"host":"{{NSQ_PRODUCE_HOST}}","port":"{{NSQ_PRODUCE_PORT}}"}
   }
 }

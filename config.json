@@ -9,6 +9,11 @@
     "min-conns":1,
     "init-conns":1
   },
+  "etcd":"http://127.0.0.1:2379",
+  "nsq":{
+    "lookup":{"host":"127.0.0.1","port":4161},
+    "produce":{"host":"127.0.0.1","port":4150}
+  },
   "secret":"vape.key",
   "server":{
     "port":8081

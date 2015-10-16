@@ -20,7 +20,8 @@ module = (typeof module == 'undefined') ? {} :  module;
 
 (function() {
   var System  = java.lang.System,
-      Scanner = java.util.Scanner,
+      FileInputStream = java.io.FileInputStream,
+      IOUtils = org.apache.commons.io.IOUtils,
       File    = java.io.File;
 
   NativeRequire = (typeof NativeRequire === 'undefined') ? {} : NativeRequire;
@@ -256,10 +257,9 @@ module = (typeof module == 'undefined') ? {} :  module;
         var classloader = java.lang.Thread.currentThread().getContextClassLoader();
         input = classloader.getResourceAsStream(filename);
       } else {
-        input = new File(filename);
+        input = new FileInputStream(new File(filename));
       }
-      // TODO: I think this is not very efficient
-      return new Scanner(input).useDelimiter("\\A").next();
+      return new java.lang.String(IOUtils.toByteArray(input));
     } catch(e) {
       throw new ModuleError("Cannot read file ["+input+"]: ", "IO_ERROR", e);
     }
