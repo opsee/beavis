@@ -9,6 +9,7 @@ dependencies:
     - docker pull sameersbn/postgresql:9.4-3
     - docker run --name postgresql -d -e PSQL_TRUST_LOCALNET=true -e DB_USER=postgres -e DB_PASS= -e DB_NAME=beavis_test sameersbn/postgresql:9.4-3
     - npm --version
+    - lein deps
     - cd js/slate && npm install
     - cp src/riemann_config.clj docker/etc
 machine:
