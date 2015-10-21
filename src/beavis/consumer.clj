@@ -46,7 +46,7 @@
         (next check-result))
       nil)))
 
-(defn new-consumer [nsq-config]
+(defn nsq-stream-producer [nsq-config]
   (reify StreamProducer
     (start-producer! [_ next]
       (let [lookup (nsq-lookup (:lookup nsq-config) (:produce nsq-config))
