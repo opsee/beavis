@@ -38,7 +38,7 @@
 (defn start-stream [conf pool]
   (let [assertions (atom {})
         assertions-watcher (start-watcher conf pool assertions)
-        pipeline (stream/pipeline (consumer/new-consumer (:nsq conf))
+        pipeline (stream/pipeline (consumer/nsq-stream-producer (:nsq conf))
                                   (slate/slate-stage pool assertions))]
     (stream/start-pipeline! pipeline)))
 
