@@ -1,6 +1,6 @@
 (ns beavis.fixtures
   (:require [beavis.sql :as sql]
-            [beavis.protobuilder :refer :all])
+            [opsee.middleware.protobuilder :refer :all])
   (:import (co.opsee.proto Timestamp Target CheckResult HttpResponse Any CheckResponse)))
 
 
