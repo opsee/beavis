@@ -12,6 +12,8 @@
             [beavis.stream :refer :all]
             [clojure.tools.logging :as log]))
 
+(def next-stage-fn (atom nil))
+
 (defn get-config-path []
   "In a container, we use /etc/beavis/riemann_config.clj, but when testing
   or running locally, we use it from the classpath."
@@ -67,10 +69,16 @@
 
   This may happen in the case that this was considered a service flap
   by Riemann.
+
+  NOTE: The first time submit is called, the value of next is stored.
+  Subsequent values passed as the next argument will be ignored. In
+  order to change the next stream stage for this stream, you must reset
+  the value of the next-stage-fn atom.
   "
   (let [event (to-riemann-event result)
         responses (map stream-and-return (:responses event))]
-    (next (stream-and-return (assoc event :responses responses)))))
+    (when-not @next-stage-fn (reset! next-stage-fn next))
+    (stream-and-return (assoc event :responses responses))))
 
 (defn riemann-stage []
   (reify
