@@ -3,7 +3,7 @@
             [beavis.sql :as sql]
             [clojure.tools.logging :as log]
             [wall.hack :as hack]
-            [beavis.protobuilder :as pb])
+            [opsee.middleware.protobuilder :as pb])
   (:import (io.nodyn.runtime RuntimeFactory RuntimeFactory$RuntimeType NodynConfig)
            (io.nodyn Callback)
            (java.util.concurrent CyclicBarrier)
