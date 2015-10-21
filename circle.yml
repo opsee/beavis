@@ -10,6 +10,7 @@ dependencies:
     - docker run --name postgresql -d -e PSQL_TRUST_LOCALNET=true -e DB_USER=postgres -e DB_PASS= -e DB_NAME=beavis_test sameersbn/postgresql:9.4-3
     - npm --version
     - cd js/slate && npm install
+    - cp src/riemann_config.clj docker/etc
 machine:
   java:
     version: oraclejdk8
