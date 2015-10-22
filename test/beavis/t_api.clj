@@ -13,7 +13,9 @@
 
 ; this token is for {"id":8,"customer_id":"154ba57a-5188-11e5-8067-9b5f2d96dce1","email":"cliff@leaninto.it","name":"cliff","verified":true,"admin":false,"active":true}
 ; it will expire in 10 yrs. hopefully that is long enough so that computers won't exist anymore
-(def auth-header "Bearer eyJhbGciOiJBMTI4R0NNS1ciLCJlbmMiOiJBMTI4R0NNIiwiaXYiOiJXQWlLQ2Z1azk3TlBzM1ZYIiwidGFnIjoiaU56RG1LdjloQmE0TS1YU19YcEpPZyJ9.HqXl4bq3k3E9GQ7FtsWHaQ.SONY24NgxzEZk7c3.yYd7WZX3O8ChDIVFlG--kLr_bDfkNXcR7eAnCyZ-QhFKmlbKGKE9A1-uudKRPuZ05LEAxolOrZ0lPRkW7CM3jdEdYBcUITinztgz-POIdMOXdUjFODpNOVxlcHKtZo2JH1wNdzEobBtAmVbdkl2aNUJMhVSKWbsLV3efvKQ-wVfO3kHDNmYHJlp2DKh0-8yul4UcoDytkEDOfTrpGlZrxStXRNhSf0KhRK11fh3dXvyzj07OEdYuNVbqhtfyycBPUQUJnP1xDZTpDtZ3n7lJaA.OGbujXobjndTRus8wmCqIg")
+(def auth-header (str "Basic eyJhY3RpdmUiOnRydWUsImlkIjo4LCJlbWFpbCI6ImNsaWZmQGxlYW5pbnRvLml0IiwidmVyaWZpZWQiOnRydWUsImN1c"
+                      "3RvbWVyX2lkIjoiMTU0YmE1N2EtNTE4OC0xMWU1LTgwNjctOWI1ZjJkOTZkY2UxIiwiZXhwIjoxNzU2NzgwOTQxLCJzdW"
+                      "IiOiJjbGlmZkBsZWFuaW50by5pdCIsImlhdCI6MTQ0MTIxMjE0MSwibmFtZSI6ImNsaWZmIiwiYWRtaW4iOmZhbHNlfQ=="))
 
 (def defaults {"DB_NAME" "beavis_test",
                "DB_HOST" "localhost",
@@ -30,7 +32,6 @@
 (defn app []
   (do
     (log/info "start server")
-    (auth/set-secret! (slurp-bytes (:secret test-config)))
     (api/handler @db test-config)))
 
 (facts "assertions endpoint"

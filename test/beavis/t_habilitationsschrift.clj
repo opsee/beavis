@@ -2,7 +2,7 @@
   (:use midje.sweet)
   (:require [beavis.fixtures :refer :all]
             [beavis.habilitationsschrift :as hab]
-            [beavis.protobuilder :refer :all]
+            [opsee.middleware.protobuilder :refer :all]
             [beavis.stream :as s]
             [riemann.config :refer [core]]
             [riemann.logging :as logging]
@@ -15,7 +15,6 @@
 (defn next-callback [event]
   (reset! received-event true)
   event)
-(set-format "Timestamp" "int64")
 
 (defn set-passing [result]
   (assoc result :responses (map #(assoc % :passing (= 200 (get-in % [:response :value :code]))) (:responses result))))

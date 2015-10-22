@@ -12,6 +12,8 @@ dependencies:
     - lein deps
     - cd js/slate && npm install
     - cp src/riemann_config.clj docker/etc
+  cache_directories:
+    - js/slate/node_modules
 machine:
   java:
     version: oraclejdk8

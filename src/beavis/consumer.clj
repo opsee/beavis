@@ -1,17 +1,18 @@
 (ns beavis.consumer
-  (:require [beavis.protobuilder :as proto]
+  (:require [opsee.middleware.protobuilder :as proto]
             [beavis.stream :refer :all]
             [clojure.walk :refer [keywordize-keys]]
             [clojure.tools.logging :as log])
   (:import (com.github.brainlag.nsq.lookup DefaultNSQLookup)
            (com.github.brainlag.nsq NSQConsumer ServerAddress)
            (com.github.brainlag.nsq.callbacks NSQMessageCallback)
-           (co.opsee.proto CheckResult)
+           (co.opsee.proto CheckResult Timestamp)
            (com.google.common.collect Sets)
            (java.io IOException)))
 
 (def consumer (atom nil))
-(proto/set-format "Timestamp" "int64")
+(defn time-formatter [^Timestamp t]
+  (.getSeconds t))
 
 (defn ensure-int [val]
   (if (= String (class val))
@@ -33,10 +34,11 @@
     proxy))
 
 (defn convert-message [msg]
-  (let [bytes (.getMessage msg)]
-     (-> (CheckResult/parseFrom bytes)
-         (proto/proto->hash)
-         (keywordize-keys))))
+  (binding [proto/formatter time-formatter]
+    (let [bytes (.getMessage msg)]
+      (-> (CheckResult/parseFrom bytes)
+          (proto/proto->hash)
+          (keywordize-keys)))))
 
 (defn handle-message [next]
   (reify NSQMessageCallback

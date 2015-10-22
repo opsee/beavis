@@ -1,7 +1,7 @@
 (ns beavis.t-consumer
   (:use midje.sweet)
   (:require [beavis.consumer :as c]
-            [beavis.protobuilder :refer :all]
+            [opsee.middleware.protobuilder :as proto]
             [clojure.tools.logging :as log])
   (:import (com.github.brainlag.nsq NSQMessage Connection)
            (java.util Date)
