@@ -43,6 +43,8 @@
   (riemann.core/stream! @core event)
   (index/lookup (:index @core) (:host event) (:service event)))
 
+(def  ^:dynamic next-stage-fn)
+
 (defn handle-event [result next]
   "Handle Results and Responses separately in the same Riemann core.
 
@@ -69,16 +71,11 @@
 
   This may happen in the case that this was considered a service flap
   by Riemann.
-
-  NOTE: The first time submit is called, the value of next is stored.
-  Subsequent values passed as the next argument will be ignored. In
-  order to change the next stream stage for this stream, you must reset
-  the value of the next-stage-fn atom.
   "
   (let [event (to-riemann-event result)
         responses (map stream-and-return (:responses event))]
-    (when-not @next-stage-fn (reset! next-stage-fn next))
-    (stream-and-return (assoc event :responses responses))))
+    (binding [next-stage-fn next]
+      (stream-and-return (assoc event :responses responses)))))
 
 (defn riemann-stage []
   (reify
