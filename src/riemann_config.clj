@@ -20,7 +20,7 @@
 
 (defn pass-to-next-stage [& children]
   (fn [event]
-    (@next-stage-fn event)
+    (next-stage-fn event)
     (call-rescue event children)))
 
 (let [index (core/wrap-index (index))]
