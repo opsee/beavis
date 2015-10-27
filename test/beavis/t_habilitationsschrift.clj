@@ -16,9 +16,6 @@
   (reset! received-event true)
   event)
 
-(defn set-passing [result]
-  (assoc result :responses (map #(assoc % :passing (= 200 (get-in % [:response :value :code]))) (:responses result))))
-
 (logging/suppress
   ["riemann.core" "riemann.pubsub"]
   (facts
@@ -57,7 +54,8 @@
     (with-state-changes
       [(before :facts (do
                         (reset! core-stream (hab/riemann-stage))
-                        (s/start-stage! @core-stream)))
+                        (s/start-stage! @core-stream)
+                        (reset-index)))
        (after :facts (do
                        (s/stop-stage! @core-stream)
                        (reset! core-stream nil)

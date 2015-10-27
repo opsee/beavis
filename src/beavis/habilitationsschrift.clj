@@ -12,7 +12,8 @@
             [beavis.stream :refer :all]
             [clojure.tools.logging :as log]))
 
-(def next-stage-fn (atom nil))
+(defn query [ast]
+  (index/search (:index @core) ast))
 
 (defn get-config-path []
   "In a container, we use /etc/beavis/riemann_config.clj, but when testing

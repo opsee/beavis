@@ -1,6 +1,8 @@
 (ns beavis.fixtures
   (:require [beavis.sql :as sql]
-            [opsee.middleware.protobuilder :refer :all])
+            [opsee.middleware.protobuilder :refer :all]
+            [riemann.index :as index]
+            [riemann.config :refer [core]])
   (:import (co.opsee.proto Timestamp Target CheckResult HttpResponse Any CheckResponse)))
 
 
@@ -48,6 +50,9 @@
                                        :type "email"
                                        :value "poooooooooooo"}))
 
+(defn set-passing [result]
+  (assoc result :responses (map #(assoc % :passing (= 200 (get-in % [:response :value :code]))) (:responses result))))
+
 (defn passing-response ^Any []
   (-> (Any/newBuilder)
       (.setTypeUrl "HttpResponse")
@@ -84,6 +89,9 @@
         (.setResponse (if passing (passing-response) (failing-response)))
         .build)))
 
+(defn reset-index []
+  (index/clear (:index @core)))
+
 (defn check-result
   "check-result will produce a CheckResult object. It prepopulates
   with a security group target that yields multiple responses. The
@@ -92,8 +100,10 @@
   ([num-responses passing-count check-index]
    (check-result "check_id" num-responses passing-count check-index))
   ([check-id num-responses passing-count check-index]
+   (check-result "customer" check-id num-responses passing-count check-index))
+  ([customer-id check-id num-responses passing-count check-index]
    (-> (CheckResult/newBuilder)
-       (.setCustomerId "customer")
+       (.setCustomerId customer-id)
        (.setCheckId check-id)
        (.setTarget (-> (Target/newBuilder)
                        (.setName "sg")

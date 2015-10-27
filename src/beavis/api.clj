@@ -2,6 +2,7 @@
   (:require [clojure.tools.logging :as log]
             [cheshire.core :refer :all]
             [opsee.middleware.core :refer :all]
+            [opsee.middleware.protobuilder :as pb]
             [ring.middleware.cors :refer [wrap-cors]]
             [ring.middleware.params :refer [wrap-params]]
             [clojure.java.jdbc :refer [with-db-transaction db-set-rollback-only!]]
@@ -13,7 +14,10 @@
             [beavis.sql :as sql]
             [clojure.string :as str]
             [compojure.route :as rt]
-            [compojure.api.sweet :refer :all]))
+            [compojure.api.sweet :refer :all]
+            [opsee.middleware.protobuilder :as proto]
+            [beavis.habilitationsschrift :as hab])
+  (:import (co.opsee.proto Target CheckResult Check CheckResponse)))
 
 ;;;;;========== Globals (eat my ass) ======
 
@@ -66,7 +70,6 @@
                         :body (generate-string {:errors "A database error occurred."})})))))
 
 (defn- records->rollups [records field-name]
-  (log/info "records" records)
   (if (record? records)
     records
     (vals (reduce (fn [acc rec]
@@ -88,7 +91,6 @@
                                                                              :customer_id (cust-id ctx)})
                               (records->rollups :assertions)
                               first)]
-      (log/info "check-assertion" check-id check-assertion)
       {:assertions check-assertion})))
 
 (defn update-assertion! [check-id assertions]
@@ -133,7 +135,6 @@
                                                                                    :customer_id (cust-id ctx)})
                                  (records->rollups :notifications)
                                  first)]
-      (log/info "notifications" check-id check-notification)
       {:notifications check-notification})))
 
 (defn update-notification! [check-id notifications]
@@ -169,6 +170,20 @@
 
 (defn list-notifications [ctx]
   (records->rollups (sql/get-notifications-by-customer @db (cust-id ctx)) :notifications))
+
+(defn results-exist? [target-id check-id]
+  (fn [ctx]
+    (let [customer-id (:customer_id (:login ctx))
+          ast (list 'and
+                    (flatten
+                      (map (fn [[sym val]]
+                             (if val
+                               (list '= sym val)
+                               ()))
+                           [[:host target-id] [:service check-id]])))
+          results (filter #(= customer-id (:customer_id %)) (hab/query ast))]
+      (when-not (empty? results)
+        {:results results}))))
 
 ;;;;;========== Resource Defs =========
 
@@ -207,6 +222,11 @@
   :respond-with-entity? not-delete?
   :handle-ok :notifications)
 
+(defresource results-resource [target-id check-id] defaults
+  :allowed-methods [:get]
+  :exists? (results-exist? target-id check-id)
+  :handle-ok :results)
+
 ;;;;;========== Schema Defs ============
 
 (s/defschema Assertion
@@ -220,8 +240,8 @@
    :assertions [Assertion]})
 
 (s/defschema Notification
-  {:type                s/Str
-   :value               s/Str})
+  {:type  s/Str
+   :value s/Str})
 
 (s/defschema CheckNotifications
   {:check-id      s/Str
@@ -298,7 +318,17 @@
         :summary "Replaces a notification."
         :body [notifications CheckNotifications]
         :return CheckNotifications
-        (notification-resource check_id notifications))))
+        (notification-resource check_id notifications)))
+
+    (context* "/results" []
+      :tags ["results"]
+
+      (GET* "/" []
+        :summary "Retrieves check results."
+        :query-params [{target-id :- String nil},
+                       {check-id :- String nil}]
+        (results-resource target-id check-id))))
+
   (rt/not-found "Not found."))
 
 (defn handler [pool config]
