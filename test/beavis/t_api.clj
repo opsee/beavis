@@ -10,6 +10,7 @@
             [beavis.stream :as s]
             [opsee.middleware.protobuilder :refer :all]
             [beavis.fixtures :refer :all]
+            [cemerick.url :refer [url-encode]]
             [riemann.config :refer [core]]
             [beavis.habilitationsschrift :as hab]
             [opsee.middleware.config :refer [config]]
@@ -209,7 +210,7 @@
                        (s/stop-stage! @stage)
                        (reset! stage nil)))]
       (fact "returns results for groups"
-        (let [response ((app) (-> (mock/request :get "/results?target-id=sg-sgsgsg")
+        (let [response ((app) (-> (mock/request :get (str "/results?q=" (url-encode "host = \"sg-sgsgsg\"")))
                                   (mock/header "Authorization" auth-header)))]
           (:status response) => 200
           (:body response) => (is-json (just [(contains {:check_id "check1"
@@ -217,7 +218,7 @@
                                               (contains {:check_id "check2"
                                                          :responses not-empty})] :in-any-order))))
       (fact "returns results for checks"
-        (let [response ((app) (-> (mock/request :get "/results?check-id=check1")
+        (let [response ((app) (-> (mock/request :get (str "/results?q=" (url-encode "service = \"check1\"")))
                                   (mock/header "Authorization" auth-header)))]
           (:status response) => 200
           (:body response) => (is-json (just [(contains {:check_id "check1"
@@ -226,8 +227,15 @@
                                               (contains {:host "i-11111111"})
                                               (contains {:host "i-22222222"})] :in-any-order))))
       (fact "returns results for instances"
-        (let [response ((app) (-> (mock/request :get "/results?target-id=i-11111111")
+        (let [response ((app) (-> (mock/request :get (str "/results?q=" (url-encode "host = \"i-11111111\"")))
                                   (mock/header "Authorization" auth-header)))]
           (:status response) => 200
           (:body response) => (is-json (just [(contains {:host "i-11111111"})
-                                              (contains {:host "i-11111111"})] :in-any-order))))))
+                                              (contains {:host "i-11111111"})] :in-any-order))))
+      (fact "gets all instance responses for a check"
+        (let [response ((app) (-> (mock/request :get (str "/results?q=" (url-encode "service = \"check1\" and type = \"response\"")))
+                                  (mock/header "Authorization" auth-header)))]
+          (:status response) => 200
+          (:body response) => (is-json (just [(contains {:host "i-00000000"})
+                                              (contains {:host "i-11111111"})
+                                              (contains {:host "i-22222222"})] :in-any-order))))))

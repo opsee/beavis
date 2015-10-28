@@ -29,6 +29,7 @@
                  [verschlimmbesserung "0.1.2"]
                  [org.postgresql/postgresql "9.4-1202-jdbc42"]
                  [instaparse "1.4.1"]
+                 [com.cemerick/url "0.1.1"]
                  [clj-wallhack "1.0.1"]
                  [metosin/compojure-api "0.22.0" :exclusions [com.fasterxml.jackson.core/jackson-core com.fasterxml.jackson.core/jackson-databind]]])
 

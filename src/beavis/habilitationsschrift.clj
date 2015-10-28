@@ -36,7 +36,9 @@
     :time (:timestamp result)))
 
 (defn to-riemann-event [result]
-    (let [event (assoc result :responses (map #(to-event result %) (:responses result)))
+    (let [event (assoc result :responses (map #(assoc (to-event result %) :type "response")
+                                              (:responses result))
+                              :type "result")
           mutated (to-event event event)]
       mutated))
 
