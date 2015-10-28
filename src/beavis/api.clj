@@ -11,6 +11,7 @@
             [liberator.representation :refer [ring-response]]
             [schema.core :as s]
             [verschlimmbesserung.core :as v]
+            [riemann.query :as query]
             [beavis.sql :as sql]
             [clojure.string :as str]
             [compojure.route :as rt]
@@ -171,16 +172,10 @@
 (defn list-notifications [ctx]
   (records->rollups (sql/get-notifications-by-customer @db (cust-id ctx)) :notifications))
 
-(defn results-exist? [target-id check-id]
+(defn results-exist? [q]
   (fn [ctx]
     (let [customer-id (:customer_id (:login ctx))
-          ast (list 'and
-                    (flatten
-                      (map (fn [[sym val]]
-                             (if val
-                               (list '= sym val)
-                               ()))
-                           [[:host target-id] [:service check-id]])))
+          ast (query/ast q)
           results (filter #(= customer-id (:customer_id %)) (hab/query ast))]
       (when-not (empty? results)
         {:results results}))))
@@ -222,9 +217,9 @@
   :respond-with-entity? not-delete?
   :handle-ok :notifications)
 
-(defresource results-resource [target-id check-id] defaults
+(defresource results-resource [q] defaults
   :allowed-methods [:get]
-  :exists? (results-exist? target-id check-id)
+  :exists? (results-exist? q)
   :handle-ok :results)
 
 ;;;;;========== Schema Defs ============
@@ -325,9 +320,8 @@
 
       (GET* "/" []
         :summary "Retrieves check results."
-        :query-params [{target-id :- String nil},
-                       {check-id :- String nil}]
-        (results-resource target-id check-id))))
+        :query-params [q :- String]
+        (results-resource q))))
 
   (rt/not-found "Not found."))
 
