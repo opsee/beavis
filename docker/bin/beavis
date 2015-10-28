@@ -7,14 +7,15 @@ COMMAND="server"
 OPTS="-cp /beavis/lib/beavis.jar"
 NAMESPACE="beavis.core"
 AGGRESSIVE_OPTS="-server -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSParallelRemarkEnabled -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -XX:+UseCompressedOops -XX:+CMSClassUnloadingEnabled"
+APPENV=${APPENV:-beavisenv}
 
 if [[ $AWS == 0 ]]; then
   eval "$(/opt/bin/ec2-env)"
   /opt/bin/s3kms get -b opsee-keys -o dev/vape.key > /beavis/etc/vape.key
-  /opt/bin/s3kms get -b opsee-keys -o dev/beavisenv > /beavis/etc/beavisenv
+  /opt/bin/s3kms get -b opsee-keys -o dev/$APPENV > /beavis/etc/$APPENV
 else
   openssl rand 16 > /beavis/etc/vape.key
-  touch /beavis/etc/beavisenv
+  touch /beavis/etc/$APPENV
 fi
 
 for arg in "$@"; do
@@ -39,4 +40,4 @@ for arg in "$@"; do
   esac
 done
 
-env $(cat /beavis/etc/beavisenv | xargs) java $OPTS "$NAMESPACE" "$COMMAND" "$SUBCOMMAND" "$CONFIG"
+env $(cat /beavis/etc/$APPENV | xargs) java $OPTS "$NAMESPACE" "$COMMAND" "$SUBCOMMAND" "$CONFIG"
