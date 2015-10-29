@@ -12,7 +12,7 @@ ExecStartPre=-/usr/bin/docker kill %p-%i
 ExecStartPre=-/usr/bin/docker rm %p-%i
 ExecStartPre=/usr/bin/docker pull quay.io/opsee/%p:latest
 ExecStartPre=/usr/bin/docker run quay.io/opsee/beavis migrate
-ExecStart=/usr/bin/docker run --name %p-%i -p 2020:2020 -e APPENV=beavisenv quay.io/opsee/beavis
+ExecStart=/usr/bin/docker run --name %p-%i -p 2020:2020 --log-opt max-size=100m --log-opt max-file=1 -e APPENV=beavisenv quay.io/opsee/beavis
 ExecStop=/usr/bin/docker stop %p-%i
 
 [X-Fleet]
