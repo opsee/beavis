@@ -19,7 +19,7 @@ else
 fi
 
 function run {
-  env $(cat /bartnet/etc/$APPENV | xargs) java $OPTS "$NAMESPACE" "$COMMAND" "$SUBCOMMAND" "$CONFIG"
+  env $(cat /beavis/etc/$APPENV | xargs) java $OPTS "$NAMESPACE" "$COMMAND" "$SUBCOMMAND" "$CONFIG"
 }
 
 for arg in "$@"; do
