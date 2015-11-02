@@ -29,7 +29,7 @@
         (try
           (slate/load-assertions pool assertions)
           (log/info "refreshing assertions data" (watch-for-change client))
-          (catch Exception ex (log/error "" ex)))
+          (catch Exception _))
         (recur)))))
 
 (defn start-watcher [conf pool assertions]
