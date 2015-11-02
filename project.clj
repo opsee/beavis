@@ -31,5 +31,5 @@
                  [instaparse "1.4.1"]
                  [com.cemerick/url "0.1.1"]
                  [clj-wallhack "1.0.1"]
-                 [metosin/compojure-api "0.22.0" :exclusions [com.fasterxml.jackson.core/jackson-core com.fasterxml.jackson.core/jackson-databind]]])
-
+                 [metosin/compojure-api "0.22.0" :exclusions [com.fasterxml.jackson.core/jackson-core com.fasterxml.jackson.core/jackson-databind]]
+                 [gws/clj-mandrill "0.4.0"]])

@@ -41,3 +41,14 @@ delete from notifications where customer_id=:customer_id::uuid and check_id=:che
 
 --name: get-notifications
 select * from notifications;
+
+----------------------------------------------
+
+--name: create-alert!
+insert into alerts (customer_id, check_id, state) values (:customer_id::uuid, :check_id, 'open');
+
+--name: resolve-alert!
+update alerts set state='resolved', updated_at=current_timestamp where id=:alert_id;
+
+--name: get-latest-alert
+select * from alerts where customer_id=:customer_id::uuid and check_id=:check_id order by created_at desc limit 1;
