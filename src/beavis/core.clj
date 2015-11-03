@@ -10,7 +10,8 @@
             [verschlimmbesserung.core :as v]
             [ring.adapter.jetty :refer [run-jetty]]
             [beavis.slate :as slate]
-            [beavis.habilitationsschrift :as hab])
+            [beavis.habilitationsschrift :as hab]
+            [beavis.kundenbenachrichtigung :as alerts])
   (:import (java.net SocketTimeoutException)))
 
 (defn watch-for-change [client]
@@ -42,7 +43,8 @@
 
         pipeline (stream/pipeline (consumer/nsq-stream-producer (:nsq conf))
                                   (slate/slate-stage pool assertions)
-                                  (hab/riemann-stage))]
+                                  (hab/riemann-stage)
+                                  (alerts/alert-stage pool conf))]
     (stream/start-pipeline! pipeline)))
 
 (defn start-server [args]
