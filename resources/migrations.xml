@@ -40,4 +40,18 @@
             <column name="value" type="varchar(255)"/>
         </createTable>
     </changeSet>
+    <changeSet id="3" author="greg">
+        <createTable tableName="alerts">
+            <column name="id" type="serial"><constraints primaryKey="true"/></column>
+            <column name="check_id" type="varchar(255)"><constraints nullable="false"/></column>
+            <column name="customer_id" type="uuid"><constraints nullable="false"/></column>
+            <column name="state" type="varchar(255)"><constraints nullable="false"/></column>
+            <column name="created_at" type="timestamp with time zone" defaultValueComputed="current_timestamp"/>
+            <column name="updated_at" type="timestamp with time zone" defaultValueComputed="current_timestamp"/>
+        </createTable>
+        <createIndex tableName="alerts" indexName="idx_alerts_on_check_and_customer">
+            <column name="customer_id"/>
+            <column name="check_id"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>

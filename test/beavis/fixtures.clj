@@ -8,47 +8,60 @@
 
 
 (defn assertion-fixtures [db]
-  (sql/insert-into-assertions<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
-                                    :check_id "hello"
-                                    :key "header"
-                                    :value "content-type"
+  (sql/insert-into-assertions<! db {:customer_id  "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                                    :check_id     "hello"
+                                    :key          "header"
+                                    :value        "content-type"
                                     :relationship "equal"
-                                    :operand "text/plain"})
-  (sql/insert-into-assertions<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
-                                    :check_id "hello"
-                                    :key "code"
+                                    :operand      "text/plain"})
+  (sql/insert-into-assertions<! db {:customer_id  "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                                    :check_id     "hello"
+                                    :key          "code"
                                     :relationship "equal"
-                                    :operand "200"})
-  (sql/insert-into-assertions<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
-                                    :check_id "check2"
-                                    :key "header"
-                                    :value "vary"
+                                    :operand      "200"})
+  (sql/insert-into-assertions<! db {:customer_id  "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                                    :check_id     "check2"
+                                    :key          "header"
+                                    :value        "vary"
                                     :relationship "equal"
-                                    :operand "origin"})
-  (sql/insert-into-assertions<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
-                                    :check_id "check2"
-                                    :key "code"
+                                    :operand      "origin"})
+  (sql/insert-into-assertions<! db {:customer_id  "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                                    :check_id     "check2"
+                                    :key          "code"
                                     :relationship "notEqual"
-                                    :operand "500"})
-  (sql/insert-into-assertions<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
-                                    :check_id "goodcheck"
-                                    :key "code"
+                                    :operand      "500"})
+  (sql/insert-into-assertions<! db {:customer_id  "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                                    :check_id     "goodcheck"
+                                    :key          "code"
                                     :relationship "equal"
-                                    :operand "200"}))
+                                    :operand      "200"}))
 
 (defn notification-fixtures [db]
   (sql/insert-into-notifications<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
-                                       :check_id "hello"
-                                       :type "email"
-                                       :value "cliff@leaninto.it"})
+                                       :check_id    "hello"
+                                       :type        "email"
+                                       :value       "cliff@leaninto.it"})
   (sql/insert-into-notifications<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
-                                       :check_id "hello"
-                                       :type "slack"
-                                       :value "https://slack.com/fuckoff"})
+                                       :check_id    "hello"
+                                       :type        "slack"
+                                       :value       "https://slack.com/fuckoff"})
   (sql/insert-into-notifications<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
-                                       :check_id "poop"
-                                       :type "email"
-                                       :value "poooooooooooo"}))
+                                       :check_id    "poop"
+                                       :type        "email"
+                                       :value       "poooooooooooo"})
+  (sql/insert-into-notifications<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce2"
+                                       :check_id    "1"
+                                       :type        "email"
+                                       :value       "greg@opsee.com"}))
+
+(defn alert-fixtures [db]
+  (sql/create-alert! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                         :check_id    "hello"})
+  (sql/create-alert! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                         :check_id    "poop"})
+  (let [alert (first (sql/get-latest-alert db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                                               :check_id    "poop"}))]
+    (sql/resolve-alert! db {:alert_id (:id alert)})))
 
 (defn set-passing [result]
   (assoc result :responses (map #(assoc % :passing (= 200 (get-in % [:response :value :code]))) (:responses result))))
