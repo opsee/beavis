@@ -177,8 +177,7 @@
     (let [customer-id (:customer_id (:login ctx))
           ast (query/ast q)
           results (filter #(= customer-id (:customer_id %)) (hab/query ast))]
-      (when-not (empty? results)
-        {:results results}))))
+      {:results results})))
 
 ;;;;;========== Resource Defs =========
 
