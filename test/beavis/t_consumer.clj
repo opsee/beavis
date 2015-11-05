@@ -47,4 +47,4 @@
                  @message-finished => true
            (fact "handler translates protobuf object to map"
                  (.message (c/handle-message next-step) msg)
-                 (:customer_id @received-message) => "hi")))))
+                 (.getCustomerId @received-message) => "hi")))))

@@ -41,7 +41,7 @@
                        (s/stop-stage! @core-stream)
                        (reset! core-stream nil)
                        (reset! received-event false)))]
-      (let [result-map (proto->hash (check-result 3 3 0))]
+      (let [result-map (check-result 3 3 0)]
         (fact "result has customer id and check id"
               (let [r (s/submit @core-stream result-map next-callback)]
                 (:customer_id r) =not=> nil?
@@ -60,8 +60,8 @@
                        (s/stop-stage! @core-stream)
                        (reset! core-stream nil)
                        (reset! received-event false)))]
-      (let [result-map (set-passing (proto->hash (check-result 3 3 0)))
-            failing-result-map (set-passing (proto->hash (check-result 3 1 0)))]
+      (let [result-map (check-result 3 3 0)
+            failing-result-map (check-result 3 1 0)]
         (fact "an index is created"
               (:index @core) =not=> nil?)
         (fact "submitting an event adds the result and all responses to the index"
@@ -79,11 +79,11 @@
               (s/submit @core-stream failing-result-map next-callback)
               @received-event => true)
         (fact "submit returns the correct event"
-              (let [events (map #(proto->hash (check-result 3 3 %)) (range 1 4))]
+              (let [events (map #(check-result 3 3 %) (range 1 4))]
                 (map #(s/submit @core-stream % next-callback) events)
                 (let [r (s/submit @core-stream result-map next-callback)]
-                  (:time r) => (:timestamp result-map)))))
-      (let [result-map (set-passing (proto->hash (check-result 3 1 0)))]
+                  (:time r) => (.getSeconds (.getTimestamp result-map))))))
+      (let [result-map (check-result 3 1 0)]
         (fact "the state of each response is set in the index"
               (count (filter #(contains? % :state) (:responses (s/submit @core-stream result-map next-callback)))) => 3)
         (fact "the state of a result with multiple failing responses is failing"
