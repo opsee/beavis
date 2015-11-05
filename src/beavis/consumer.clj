@@ -52,7 +52,7 @@
     (start-producer! [_ next]
       (let [lookup (nsq-lookup (:lookup nsq-config) (:produce nsq-config))
             topic "_.results"
-            channel-id (:channel-id nsq-config)]
+            channel-id (str (java.util.UUID/randomUUID))]
         (log/info "channel" channel-id)
         (try
           (reset! consumer
