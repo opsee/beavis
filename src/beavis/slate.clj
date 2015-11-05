@@ -63,9 +63,13 @@
             (-> (.toBuilder work)
                 .clearResponses
                 (.addAllResponses
-                  (for [resp responses
-                        :let [http-resp (pb/decode-any (.getResponse resp))]]
-                    (-> (.toBuilder resp)
-                        (.setPassing (run-assertions @slate runtime sertions http-resp))
-                        .build)))
+                  (for [resp responses]
+                    (if (.hasResponse resp)
+                      (let [http-resp (pb/decode-any (.getResponse resp))]
+                        (-> (.toBuilder resp)
+                            (.setPassing (run-assertions @slate runtime sertions http-resp))
+                            .build))
+                      (-> (.toBuilder resp)
+                          (.setPassing false)
+                          .build))))
                 .build)))))))

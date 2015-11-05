@@ -3,6 +3,8 @@
   the result of stream processing along to the next StreamStage."
   (:require [clojure.java.io :as io]
             [riemann.bin]
+            [clojure.walk :refer [keywordize-keys]]
+            [opsee.middleware.protobuilder :as proto]
             [riemann.config :refer [core]]
             [riemann.core]
             [riemann.index :as index]
@@ -10,7 +12,11 @@
             [riemann.streams]
             [riemann.time]
             [beavis.stream :refer :all]
-            [clojure.tools.logging :as log]))
+            [clojure.tools.logging :as log])
+  (:import (co.opsee.proto Timestamp)))
+
+(defn time-formatter [^Timestamp t]
+  (.getSeconds t))
 
 (defn query [ast]
   (index/search (:index @core) ast))
@@ -35,8 +41,11 @@
     :check_id (:check_id result)
     :time (:timestamp result)))
 
-(defn to-riemann-event [result]
-    (let [event (assoc result :responses (map #(assoc (to-event result %) :type "response")
+(defn to-riemann-event [result-pb]
+    (let [result (binding [proto/formatter time-formatter] (-> result-pb
+                                                               (proto/proto->hash)
+                                                               (keywordize-keys)))
+          event (assoc result :responses (map #(assoc (to-event result %) :type "response")
                                               (:responses result))
                               :type "result")
           mutated (to-event event event)]

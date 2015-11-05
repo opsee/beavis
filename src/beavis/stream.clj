@@ -38,6 +38,7 @@
     (exec []
       (try
         (submit stage work next-callback)
+        (catch Throwable ex (log/error ex (str "stage " stage " ate shit.")))
         (finally (when (= index (dec total))
                    (swap! counts dec)))))))
 

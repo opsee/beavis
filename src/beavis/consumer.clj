@@ -1,7 +1,5 @@
 (ns beavis.consumer
-  (:require [opsee.middleware.protobuilder :as proto]
-            [beavis.stream :refer :all]
-            [clojure.walk :refer [keywordize-keys]]
+  (:require [beavis.stream :refer :all]
             [clojure.tools.logging :as log])
   (:import (com.github.brainlag.nsq.lookup DefaultNSQLookup)
            (com.github.brainlag.nsq NSQConsumer ServerAddress)
@@ -11,8 +9,7 @@
            (java.io IOException)))
 
 (def consumer (atom nil))
-(defn time-formatter [^Timestamp t]
-  (.getSeconds t))
+
 
 (defn ensure-int [val]
   (if (= String (class val))
@@ -33,18 +30,20 @@
     (.addLookupAddress proxy (:host lookup-addr) (ensure-int (:port lookup-addr)))
     proxy))
 
+;
+; (binding [proto/formatter time-formatter] (-> (CheckResult/parseFrom bytes)
+;    (proto/proto->hash)
+;    (keywordize-keys)))
+
 (defn convert-message [msg]
-  (binding [proto/formatter time-formatter]
-    (let [bytes (.getMessage msg)]
-      (-> (CheckResult/parseFrom bytes)
-          (proto/proto->hash)
-          (keywordize-keys)))))
+  (CheckResult/parseFrom (.getMessage msg)))
 
 (defn handle-message [next]
   (reify NSQMessageCallback
     (message [_ msg]
       (let [check-result (convert-message msg)]
         (.finished msg)
+        (log/info "check-result" check-result)
         (next check-result))
       nil)))
 
@@ -52,10 +51,12 @@
   (reify StreamProducer
     (start-producer! [_ next]
       (let [lookup (nsq-lookup (:lookup nsq-config) (:produce nsq-config))
-            topic "_.results"]
+            topic "_.results"
+            channel-id (:channel-id nsq-config)]
+        (log/info "channel" channel-id)
         (try
           (reset! consumer
-                  (.start (NSQConsumer. lookup topic (str (java.util.UUID/randomUUID)) (handle-message next))))
+                  (.start (NSQConsumer. lookup topic channel-id (handle-message next))))
           (catch Exception e
             (throw (Throwable. "Unable to start consumer." e))))))
     (stop-producer! [_]
