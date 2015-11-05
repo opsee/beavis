@@ -63,9 +63,6 @@
                                                :check_id    "poop"}))]
     (sql/resolve-alert! db {:alert_id (:id alert)})))
 
-(defn set-passing [result]
-  (assoc result :responses (map #(assoc % :passing (= 200 (get-in % [:response :value :code]))) (:responses result))))
-
 (defn passing-response ^Any []
   (-> (Any/newBuilder)
       (.setTypeUrl "HttpResponse")
@@ -100,6 +97,7 @@
                         (.setType "instance")
                         .build))
         (.setResponse (if passing (passing-response) (failing-response)))
+        (.setPassing passing)
         .build)))
 
 (defn reset-index []
