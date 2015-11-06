@@ -51,7 +51,10 @@
   (let [conf (config (last args))
         db (pool (:db-spec conf))]
     (start-stream conf db)
-    (run-jetty (api/handler db conf) (:server conf))))
+    (run-jetty (api/handler db conf) (assoc (:server conf) :configurator (fn [server]
+                                                                           (-> (.getConnectors server)
+                                                                               first
+                                                                               (.setRequestHeaderSize 20000)))))))
 
 (defn -main [& args]
   (let [cmd (first args)
