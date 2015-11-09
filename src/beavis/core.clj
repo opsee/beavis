@@ -8,7 +8,7 @@
             [beavis.stream :as stream]
             [beavis.consumer :as consumer]
             [verschlimmbesserung.core :as v]
-            [ring.adapter.jetty :refer [run-jetty]]
+            [ring.adapter.jetty9 :refer [run-jetty]]
             [beavis.slate :as slate]
             [beavis.habilitationsschrift :as hab]
             [beavis.kundenbenachrichtigung :as alerts])
@@ -51,10 +51,7 @@
   (let [conf (config (last args))
         db (pool (:db-spec conf))]
     (start-stream conf db)
-    (run-jetty (api/handler db conf) (assoc (:server conf) :configurator (fn [server]
-                                                                           (-> (.getConnectors server)
-                                                                               first
-                                                                               (.setRequestHeaderSize 20000)))))))
+    (run-jetty (api/handler db conf) (:server conf))))
 
 (defn -main [& args]
   (let [cmd (first args)
