@@ -43,7 +43,6 @@
     (message [_ msg]
       (let [check-result (convert-message msg)]
         (.finished msg)
-        (log/info "check-result" check-result)
         (next check-result))
       nil)))
 
