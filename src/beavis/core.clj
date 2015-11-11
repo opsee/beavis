@@ -12,7 +12,9 @@
             [beavis.slate :as slate]
             [beavis.habilitationsschrift :as hab]
             [beavis.kundenbenachrichtigung :as alerts])
-  (:import (java.net SocketTimeoutException)))
+  (:import (java.net SocketTimeoutException)
+           (org.eclipse.jetty.server Server)
+           (org.eclipse.jetty.server.handler ErrorHandler)))
 
 (defn watch-for-change [client]
   (loop [result (atom nil)]
@@ -47,11 +49,15 @@
                                   (alerts/alert-stage pool conf))]
     (stream/start-pipeline! pipeline)))
 
+(defn setup-jetty-server [^Server server]
+  (.addBean server (doto (ErrorHandler.)
+                         (.setShowStacks true))))
+
 (defn start-server [args]
   (let [conf (config (last args))
         db (pool (:db-spec conf))]
     (start-stream conf db)
-    (run-jetty (api/handler db conf) (:server conf))))
+    (run-jetty (api/handler db conf) (assoc (:server conf) :configurator setup-jetty-server))))
 
 (defn -main [& args]
   (let [cmd (first args)
