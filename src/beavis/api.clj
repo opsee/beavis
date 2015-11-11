@@ -337,5 +337,4 @@
                                                #"null"]
                  :access-control-allow-methods [:get :put :post :patch :delete])
       vary-origin
-      wrap-params
-      (wrap-trace :header :ui)))
+      wrap-params))
