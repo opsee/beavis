@@ -56,9 +56,11 @@
 
 (defn alert-fixtures [db]
   (sql/create-alert! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
-                         :check_id    "hello"})
+                         :check_id    "hello"
+                         :check_name  "hello"})
   (sql/create-alert! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
-                         :check_id    "poop"})
+                         :check_id    "poop"
+                         :check_name  "poop"})
   (let [alert (first (sql/get-latest-alert db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
                                                :check_id    "poop"}))]
     (sql/resolve-alert! db {:alert_id (:id alert)})))
@@ -116,6 +118,7 @@
    (-> (CheckResult/newBuilder)
        (.setCustomerId customer-id)
        (.setCheckId check-id)
+       (.setCheckName check-id)
        (.setTarget (-> (Target/newBuilder)
                        (.setName "sg")
                        (.setType "sg")

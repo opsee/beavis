@@ -34,7 +34,7 @@
   and an event. If the event is passing, do X. If the event is failing, do Y. Etc. The state transitions
   are inherently tied to the state of the event. It is assumed, in handlers, that if an event is passing,
   then it was previously okay."
-  (let [event-id {:customer_id (:customer_id event) :check_id (:check_id event)}
+  (let [event-id {:customer_id (:customer_id event) :check_id (:check_id event) :check_name (:check_name event)}
         alert (first (sql/get-latest-alert @db event))
         notifications (sql/get-notifications-by-check-and-customer @db event-id)]
     (log/debug "Handling event: event=" event-id " alert=" alert " notifications=" notifications)

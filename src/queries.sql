@@ -45,7 +45,7 @@ select * from notifications;
 ----------------------------------------------
 
 --name: create-alert!
-insert into alerts (customer_id, check_id, state) values (:customer_id::uuid, :check_id, 'open');
+insert into alerts (customer_id, check_id, check_name, state) values (:customer_id::uuid, :check_id, :check_name, 'open');
 
 --name: resolve-alert!
 update alerts set state='resolved', updated_at=current_timestamp where id=:alert_id;

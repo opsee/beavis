@@ -16,9 +16,9 @@
 (def resolved-alert-check "poop")
 (def unseen-check-id "1")
 (defn passing-event [customer_id check_id]
-  (assoc (proto/proto->hash (check-result 3 3 0)) :customer_id customer_id :check_id check_id :passing true))
+  (assoc (proto/proto->hash (check-result 3 3 0)) :customer_id customer_id :check_id check_id :check_name check_id :passing true))
 (defn failing-event [customer_id check_id]
-  (assoc (proto/proto->hash (check-result 3 1 0)) :customer_id customer_id :check_id check_id :passing false))
+  (assoc (proto/proto->hash (check-result 3 1 0)) :customer_id customer_id :check_id check_id :check_name check_id :passing false))
 
 (defn next-fn [event]
   event)
