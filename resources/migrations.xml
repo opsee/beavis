@@ -54,4 +54,9 @@
             <column name="check_id"/>
         </createIndex>
     </changeSet>
+    <changeSet id="4" author="greg">
+        <addColumn tableName="alerts">
+            <column name="check_name" type="varchar(255)"><constraints nullable="false"/></column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

@@ -19,7 +19,7 @@
   (let [failing-group (filter #(false? (:passing %)) (:responses event))
         vars {:group_name     (or (get-in event [:target :name]) (get-in event [:target :id]))
               :group_id       (get-in event [:target :id])
-              :check_name     (:check_id event)             ;; TODO(greg): Get this from Bartnet.
+              :check_name     (:check_name event)
               :instance_count (count (:responses event))
               :fail_count     (count failing-group)
               :instances      (map :target failing-group)

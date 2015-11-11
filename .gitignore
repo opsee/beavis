@@ -13,4 +13,3 @@ pom.xml.asc
 .idea
 *.iml
 vape.key
-src/co/opsee/proto/*
