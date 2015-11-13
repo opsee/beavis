@@ -12,10 +12,14 @@
         mutated (assoc event :passing passing :state passing)]
     mutated))
 
+(defn set-error-state [event]
+  (assoc event :passing false))
+
 (defn set-state [& children]
   (fn [event]
     (cond (:responses event) (call-rescue (set-result-state event) children)
           (:response event) (call-rescue (set-response-state event) children)
+          (:error event) (call-rescue (set-error-state event) children)
           :else nil)))
 
 (defn pass-to-next-stage [& children]
