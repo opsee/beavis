@@ -34,17 +34,18 @@
   and an event. If the event is passing, do X. If the event is failing, do Y. Etc. The state transitions
   are inherently tied to the state of the event. It is assumed, in handlers, that if an event is passing,
   then it was previously okay."
-  (let [event-id {:customer_id (:customer_id event) :check_id (:check_id event) :check_name (:check_name event)}
+  (let [event {:customer_id (:customer_id event) :check_id (:check_id event) :check_name (or (:check_name event)
+                                                                                             "")}
         alert (first (sql/get-latest-alert @db event))
-        notifications (sql/get-notifications-by-check-and-customer @db event-id)]
-    (log/debug "Handling event: event=" event-id " alert=" alert " notifications=" notifications)
+        notifications (sql/get-notifications-by-check-and-customer @db event)]
+    (log/debug "Handling event: event=" event " alert=" alert " notifications=" notifications)
     (when (resolve-predicate event alert)
-      (log/info "Resolving alert for event: " event-id)
+      (log/info "Resolving alert for event: " event)
       (sql/resolve-alert! @db {:alert_id (:id alert)})
       (send-messages event notifications))
     (when (create-predicate event alert)
-      (log/info "Creating alert for event: " event-id)
-      (sql/create-alert! @db event-id)
+      (log/info "Creating alert for event: " event)
+      (sql/create-alert! @db event)
       (send-messages event notifications))))
 
 (defn alert-stage [db-conn cfg]
