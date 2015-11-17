@@ -1,6 +1,7 @@
 (ns beavis.stream
   (:require [clojure.tools.logging :as log])
-  (:import (java.util.concurrent ForkJoinPool ForkJoinTask)))
+  (:import (java.util.concurrent ForkJoinPool ForkJoinTask)
+           (java.sql BatchUpdateException)))
 
 (defprotocol StreamProducer
   "The StreamProducer gets messages from the outside world and submits them into the pipeline.
@@ -38,6 +39,9 @@
     (exec []
       (try
         (submit stage work next-callback)
+        (catch BatchUpdateException ex (do
+                                         (log/error ex (str "stage " stage " ate shit."))
+                                         (log/error (.getNextException ex))))
         (catch Throwable ex (log/error ex (str "stage " stage " ate shit.")))
         (finally (when (= index (dec total))
                    (swap! counts dec)))))))
