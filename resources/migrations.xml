@@ -55,8 +55,10 @@
         </createIndex>
     </changeSet>
     <changeSet id="4" author="greg">
+        <validCheckSum>7:00d6268491a0f6dcfd268901c008fbb6</validCheckSum>
+        <validCheckSum>7:f654e1532752278736c1c1f52d14fa82</validCheckSum>
         <addColumn tableName="alerts">
-            <column name="check_name" type="varchar(255)"><constraints nullable="false"/></column>
+            <column name="check_name" type="varchar(255)"/>
         </addColumn>
     </changeSet>
 </databaseChangeLog>
