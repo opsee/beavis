@@ -58,10 +58,9 @@
                                                                                      :relationship "equal"
                                                                                      :operand      200})] :in-any-order)})
                                                 (just {:check-id   "check2"
-                                                       :assertions (contains [(just {:key          "header"
-                                                                                     :value        "vary"
-                                                                                     :relationship "equal"
-                                                                                     :operand      "origin"})
+                                                       :assertions (contains [(just {:key          "body"
+                                                                                     :relationship "contain"
+                                                                                     :operand      "OK"})
                                                                               (just {:key          "code"
                                                                                      :relationship "notEqual"
                                                                                      :operand      500})] :in-any-order)})] :in-any-order))))

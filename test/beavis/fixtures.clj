@@ -21,10 +21,9 @@
                                     :operand      "200"})
   (sql/insert-into-assertions<! db {:customer_id  "154ba57a-5188-11e5-8067-9b5f2d96dce1"
                                     :check_id     "check2"
-                                    :key          "header"
-                                    :value        "vary"
-                                    :relationship "equal"
-                                    :operand      "origin"})
+                                    :key          "body"
+                                    :relationship "contain"
+                                    :operand      "OK"})
   (sql/insert-into-assertions<! db {:customer_id  "154ba57a-5188-11e5-8067-9b5f2d96dce1"
                                     :check_id     "check2"
                                     :key          "code"

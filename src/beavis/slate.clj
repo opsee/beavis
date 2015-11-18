@@ -3,13 +3,16 @@
             [beavis.sql :as sql]
             [clojure.tools.logging :as log]
             [wall.hack :as hack]
-            [opsee.middleware.protobuilder :as pb])
+            [opsee.middleware.protobuilder :as pb]
+            [opsee.middleware.protobuilder :as proto])
   (:import (io.nodyn.runtime RuntimeFactory RuntimeFactory$RuntimeType NodynConfig)
            (io.nodyn Callback)
            (java.util.concurrent CyclicBarrier)
-           (org.dynjs.runtime DynJS)
-           (co.opsee.proto CheckResult HttpResponse CheckResponse)
-           (io.nodyn.runtime.dynjs DynJSRuntime)))
+           (org.dynjs.runtime DynJS DynObject)
+           (co.opsee.proto CheckResult HttpResponse CheckResponse Any)
+           (io.nodyn.runtime.dynjs DynJSRuntime)
+           (com.google.protobuf Descriptors Descriptors$FieldDescriptor GeneratedMessage WireFormat$JavaType)
+           (clojure.lang Reflector)))
 
 (def db (atom nil))
 
@@ -23,17 +26,57 @@
                    (assoc acc check-id (conj recs (map->Assertion record))))) {})
        (reset! target)))
 
+(declare proto->js)
+
 (defn run-assertion [test-assertion runtime assertion response]
-  (-> runtime
-      .getDefaultExecutionContext
-      (.call test-assertion (-> runtime
-                                .getGlobalContext
-                                .getObject)
-             (into-array Object [assertion response]))
-      (.get "success")))
+  (let [response (proto->js (.getDefaultExecutionContext runtime) response)
+        result (-> runtime
+                   .getDefaultExecutionContext
+                   (.call test-assertion (-> runtime
+                                             .getGlobalContext
+                                             .getObject)
+                          (into-array Object [assertion response])))]
+    (log/info "assertion" assertion "response" response "result" result (.get result "success"))
+    (.get result "success")))
 
 (defn run-assertions [test-assertion runtime assertions response]
   (not-any? not (map #(run-assertion test-assertion runtime % response) assertions)))
+
+
+(defn any->js [ec ^Any any]
+  (let [type (.getTypeUrl any)
+        clazz (Class/forName (str "co.opsee.proto." type))
+        proto (Reflector/invokeStaticMethod clazz "parseFrom" (to-array [(.getValue any)]))]
+    (proto->js ec proto)))
+
+
+
+(defn- unpack-value [ec ^Descriptors$FieldDescriptor field value]
+  (pb/case-enum (.getJavaType field)
+                WireFormat$JavaType/BOOLEAN value
+                WireFormat$JavaType/BYTE_STRING value
+                WireFormat$JavaType/DOUBLE value
+                WireFormat$JavaType/ENUM value
+                WireFormat$JavaType/FLOAT value
+                WireFormat$JavaType/INT value
+                WireFormat$JavaType/LONG value
+                WireFormat$JavaType/STRING value
+                WireFormat$JavaType/MESSAGE (case (.getName (.getMessageType field))
+                                              "Any" (any->js ec value)
+                                              ;"Timestamp" (timestamp->js ec value)
+                                              (proto->js ec value))))
+
+(defn unpack-repeated-or-single [ec ^Descriptors$FieldDescriptor field value]
+  (if (.isRepeated field)
+    (into-array Object (mapv (partial unpack-value ec field) value))
+    (unpack-value ec field value)))
+
+(defn proto->js [ec ^GeneratedMessage proto]
+  (let [js (DynObject.)]
+    (doseq [[^Descriptors$FieldDescriptor field value] (.getAllFields proto)
+            :let [unpacked (unpack-repeated-or-single ec field value)]]
+      (.put js ec (.getName field) unpacked true))
+    js))
 
 (defn slate-stage [db-pool assertions]
   (let [factory (RuntimeFactory/init (-> (Object.)
