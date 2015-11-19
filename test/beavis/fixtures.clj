@@ -33,7 +33,11 @@
                                     :check_id     "goodcheck"
                                     :key          "code"
                                     :relationship "equal"
-                                    :operand      "200"}))
+                                    :operand      "200"})
+  (sql/insert-into-assertions<! db {:customer_id  "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                                    :check_id     "check1"
+                                    :key          "body"
+                                    :relationship "notEmpty"}))
 
 (defn notification-fixtures [db]
   (sql/insert-into-notifications<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
@@ -51,7 +55,11 @@
   (sql/insert-into-notifications<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce2"
                                        :check_id    "1"
                                        :type        "email"
-                                       :value       "greg@opsee.com"}))
+                                       :value       "greg@opsee.com"})
+  (sql/insert-into-notifications<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                                       :check_id    "check1"
+                                       :type        "email"
+                                       :value       "cliff@leaninto.it"}))
 
 (defn alert-fixtures [db]
   (sql/create-alert! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
@@ -60,6 +68,9 @@
   (sql/create-alert! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
                          :check_id    "poop"
                          :check_name  "poop"})
+  (sql/create-alert! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                         :check_id    "check1"
+                         :check_name  "doop"})
   (let [alert (first (sql/get-latest-alert db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
                                                :check_id    "poop"}))]
     (sql/resolve-alert! db {:alert_id (:id alert)})))

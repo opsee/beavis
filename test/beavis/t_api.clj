@@ -179,16 +179,16 @@
       (let [response ((app) (-> (mock/request :get "/notifications")
                                 (mock/header "Authorization" auth-header)))]
         (:status response) => 200
-        (:body response) => (is-json (just [(just {:check-id      "hello"
-                                                   :notifications (just [(just {:type "email"
-                                                                                :value "cliff@leaninto.it"})
-                                                                         (just {:type "slack"
-                                                                                :value "https://slack.com/fuckoff"})]
-                                                                        :in-any-order)})
-                                            (just {:check-id      "poop"
-                                                   :notifications (just [(just {:type "email"
-                                                                                :value "poooooooooooo"})])})]
-                                           :in-any-order))))))
+        (:body response) => (is-json (contains [(just {:check-id      "hello"
+                                                       :notifications (just [(just {:type "email"
+                                                                                    :value "cliff@leaninto.it"})
+                                                                             (just {:type "slack"
+                                                                                    :value "https://slack.com/fuckoff"})]
+                                                                            :in-any-order)})
+                                                (just {:check-id      "poop"
+                                                       :notifications (just [(just {:type "email"
+                                                                                    :value "poooooooooooo"})])})]
+                                               :in-any-order))))))
 
 (defn noop [_])
 
@@ -197,7 +197,11 @@
 (facts "results endpoint"
     (with-state-changes
       [(before :facts (do
-                        (do-setup)
+                        (doto
+                          (do-setup)
+                          assertion-fixtures
+                          notification-fixtures
+                          alert-fixtures)
                         (reset! stage (hab/riemann-stage))
                         (s/start-stage! @stage)
                         (reset-index)
@@ -237,4 +241,15 @@
           (:status response) => 200
           (:body response) => (is-json (just [(contains {:host "i-00000000"})
                                               (contains {:host "i-11111111"})
-                                              (contains {:host "i-22222222"})] :in-any-order))))))
+                                              (contains {:host "i-22222222"})] :in-any-order))))
+      (fact "deletes everything for a check"
+        (let [response ((app) (-> (mock/request :delete "/results/check1")
+                                  (mock/header "Authorization" auth-header)))]
+          (:status response) => 204
+          (hab/query {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                      :check_id "check1"}) => empty?
+          (hab/query {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
+                     :check_id "check2"}) => not-empty
+          (sql/get-notifications-by-check @db "check1") => empty?
+          (sql/get-assertions-by-check @db "check1") => empty?
+          (sql/get-alerts-by-check @db "check1") => empty?))))

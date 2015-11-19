@@ -52,3 +52,9 @@ update alerts set state='resolved', updated_at=current_timestamp where id=:alert
 
 --name: get-latest-alert
 select * from alerts where customer_id=:customer_id::uuid and check_id=:check_id order by created_at desc limit 1;
+
+--name: get-alerts-by-check
+select * from alerts where check_id=:check_id;
+
+--name: delete-alerts-by-check-and-customer!
+delete from alerts where customer_id=:customer_id::uuid and check_id=:check_id;

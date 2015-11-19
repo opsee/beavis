@@ -17,7 +17,8 @@
             [compojure.route :as rt]
             [compojure.api.sweet :refer :all]
             [opsee.middleware.protobuilder :as proto]
-            [beavis.habilitationsschrift :as hab])
+            [beavis.habilitationsschrift :as hab]
+            [riemann.index :as index])
   (:import (co.opsee.proto Target CheckResult Check CheckResponse)))
 
 ;;;;;========== Globals (eat my ass) ======
@@ -175,9 +176,23 @@
 (defn results-exist? [q]
   (fn [ctx]
     (let [customer-id (:customer_id (:login ctx))
-          ast (query/ast q)
-          results (filter #(= customer-id (:customer_id %)) (hab/query ast))]
+          results (filter #(= customer-id (:customer_id %)) (hab/query q))]
       {:results results})))
+
+(defn delete-all-results [params]
+  (let [results (hab/query params)]
+    (doseq [event results]
+      (hab/delete event))))
+
+(defn delete-all [check-id]
+  (fn [ctx]
+    (let [customer-id (cust-id ctx)
+          slug {:customer_id customer-id
+                :check_id check-id}]
+      (delete-all-results slug)
+      (sql/delete-notifications-by-check-and-customer! @db slug)
+      (sql/delete-assertions-by-check-and-customer! @db slug)
+      (sql/delete-alerts-by-check-and-customer! @db slug))))
 
 ;;;;;========== Resource Defs =========
 
@@ -220,6 +235,10 @@
   :allowed-methods [:get]
   :exists? (results-exist? q)
   :handle-ok :results)
+
+(defresource delete-all-resource [check-id] defaults
+  :allowed-methods [:delete]
+  :delete! (delete-all check-id))
 
 ;;;;;========== Schema Defs ============
 
@@ -320,7 +339,11 @@
       (GET* "/" []
         :summary "Retrieves check results."
         :query-params [q :- String]
-        (results-resource q))))
+        (results-resource q))
+
+      (DELETE* "/:check_id" [check_id]
+        :summary "Deletes all results, alerts, and notifications for a particular check."
+        (delete-all-resource check_id))))
 
   (rt/not-found "Not found."))
 
