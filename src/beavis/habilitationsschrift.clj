@@ -7,19 +7,32 @@
             [opsee.middleware.protobuilder :as proto]
             [riemann.config :refer [core]]
             [riemann.core]
+            [clojure.string :as str]
+            [riemann.query :as query-parser]
             [riemann.index :as index]
             [riemann.pubsub :refer [PubSub]]
             [riemann.streams]
             [riemann.time]
             [beavis.stream :refer :all]
             [clojure.tools.logging :as log])
-  (:import (co.opsee.proto Timestamp)))
+  (:import (co.opsee.proto Timestamp)
+           (clojure.lang IPersistentMap)))
 
 (defn time-formatter [^Timestamp t]
   (.getSeconds t))
 
-(defn query [ast]
-  (index/search (:index @core) ast))
+(defn q [params]
+  (str/join " and " (map (fn [[k v]] (str (name k) " = \"" v "\"")) params)))
+
+(defmulti query (fn [qu] (type qu)))
+(defmethod query IPersistentMap [qu]
+  (query (q qu)))
+(defmethod query String [qu]
+  (log/info qu)
+  (index/search (:index @core) (query-parser/ast qu)))
+
+(defn delete [event]
+  (index/delete (:index @core) event))
 
 (defn get-config-path []
   "In a container, we use /etc/beavis/riemann_config.clj, but when testing
