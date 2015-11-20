@@ -1,39 +1,14 @@
 (ns beavis.consumer
   (:require [beavis.stream :refer :all]
-            [clojure.tools.logging :as log])
-  (:import (com.github.brainlag.nsq.lookup DefaultNSQLookup)
-           (com.github.brainlag.nsq NSQConsumer ServerAddress)
+            [beavis.deletions :as deletions]
+            [opsee.middleware.nsq :refer [nsq-lookup]]
+            [clojure.tools.logging :as log]
+            [beavis.deletions :as deletions])
+  (:import (com.github.brainlag.nsq NSQConsumer)
            (com.github.brainlag.nsq.callbacks NSQMessageCallback)
-           (co.opsee.proto CheckResult Timestamp)
-           (com.google.common.collect Sets)
-           (java.io IOException)))
+           (co.opsee.proto CheckResult Timestamp)))
 
 (def consumer (atom nil))
-
-
-(defn ensure-int [val]
-  (if (= String (class val))
-    (try
-      (Integer/parseInt val)
-      (catch Exception _ 0))
-    val))
-
-(defn nsq-lookup [lookup-addr produce-addr]
-  (let [proxy (proxy [DefaultNSQLookup] []
-                (lookup [topic]
-                  (try
-                    (proxy-super lookup topic)
-                    (catch IOException _
-                      (let [set (Sets/newHashSet)]
-                        (.add set (ServerAddress. (:host produce-addr) (ensure-int (:port produce-addr))))
-                        set)))))]
-    (.addLookupAddress proxy (:host lookup-addr) (ensure-int (:port lookup-addr)))
-    proxy))
-
-;
-; (binding [proto/formatter time-formatter] (-> (CheckResult/parseFrom bytes)
-;    (proto/proto->hash)
-;    (keywordize-keys)))
 
 (defn convert-message [msg]
   (CheckResult/parseFrom (.getMessage msg)))
@@ -43,7 +18,8 @@
     (message [_ msg]
       (let [check-result (convert-message msg)]
         (.finished msg)
-        (next check-result))
+        (if-not (deletions/is-deleted? check-result)
+          (next check-result)))
       nil)))
 
 (defn nsq-stream-producer [nsq-config]

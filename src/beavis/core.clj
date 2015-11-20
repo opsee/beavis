@@ -7,6 +7,7 @@
             [opsee.middleware.pool :refer [pool]]
             [beavis.stream :as stream]
             [beavis.consumer :as consumer]
+            [beavis.deletions :as deletions]
             [verschlimmbesserung.core :as v]
             [ring.adapter.jetty9 :refer [run-jetty]]
             [beavis.slate :as slate]
@@ -25,7 +26,7 @@
       (recur result)
       @result)))
 
-(defn watcher [conf pool assertions]
+(defn assertions-watcher [conf pool assertions]
   (fn []
     (let [client (v/connect (:etcd conf))]
       (loop []
@@ -35,14 +36,14 @@
           (catch Exception _))
         (recur)))))
 
-(defn start-watcher [conf pool assertions]
-  (doto (Thread. (watcher conf pool assertions))
+(defn start-assertions-watcher [conf pool assertions]
+  (doto (Thread. (assertions-watcher conf pool assertions))
         .start))
 
 (defn start-stream [conf pool]
   (let [assertions (atom {})
-        assertions-watcher (start-watcher conf pool assertions)
-
+        assertions-watcher (start-assertions-watcher conf pool assertions)
+        deletions-watcher (deletions/start-deletion-watcher conf)
         pipeline (stream/pipeline (consumer/nsq-stream-producer (:nsq conf))
                                   (slate/slate-stage pool assertions)
                                   (hab/riemann-stage)

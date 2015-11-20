@@ -13,6 +13,7 @@
             [verschlimmbesserung.core :as v]
             [riemann.query :as query]
             [beavis.sql :as sql]
+            [beavis.deletions :as deletions]
             [clojure.string :as str]
             [compojure.route :as rt]
             [compojure.api.sweet :refer :all]
@@ -179,17 +180,12 @@
           results (filter #(= customer-id (:customer_id %)) (hab/query q))]
       {:results results})))
 
-(defn delete-all-results [params]
-  (let [results (hab/query params)]
-    (doseq [event results]
-      (hab/delete event))))
-
 (defn delete-all [check-id]
   (fn [ctx]
     (let [customer-id (cust-id ctx)
           slug {:customer_id customer-id
                 :check_id check-id}]
-      (delete-all-results slug)
+      (deletions/delete-check @etcd-client customer-id check-id)
       (sql/delete-notifications-by-check-and-customer! @db slug)
       (sql/delete-assertions-by-check-and-customer! @db slug)
       (sql/delete-alerts-by-check-and-customer! @db slug))))
