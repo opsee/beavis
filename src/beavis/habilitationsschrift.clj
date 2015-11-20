@@ -28,11 +28,17 @@
 (defmethod query IPersistentMap [qu]
   (query (q qu)))
 (defmethod query String [qu]
-  (log/info qu)
   (index/search (:index @core) (query-parser/ast qu)))
 
 (defn delete [event]
   (index/delete (:index @core) event))
+
+(defn delete-all-results [deletions]
+  (doseq [[check-id customer-id] deletions]
+    (let [results (query {:service check-id
+                          :customer_id customer-id})]
+      (doseq [event results]
+        (delete event)))))
 
 (defn get-config-path []
   "In a container, we use /etc/beavis/riemann_config.clj, but when testing

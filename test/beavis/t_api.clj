@@ -246,10 +246,6 @@
         (let [response ((app) (-> (mock/request :delete "/results/check1")
                                   (mock/header "Authorization" auth-header)))]
           (:status response) => 204
-          (hab/query {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
-                      :check_id "check1"}) => empty?
-          (hab/query {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"
-                     :check_id "check2"}) => not-empty
           (sql/get-notifications-by-check @db "check1") => empty?
           (sql/get-assertions-by-check @db "check1") => empty?
           (sql/get-alerts-by-check @db "check1") => empty?))))

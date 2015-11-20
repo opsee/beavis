@@ -9,7 +9,7 @@
              :dev {:dependencies [[midje "1.6.3"]
                                   [clj-http-fake "1.0.1"]
                                   [ring/ring-mock "0.2.0"]]
-                   ;:jvm-opts ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5006"]
+                   :jvm-opts ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5006"]
                    :plugins [[lein-midje "3.0.0"]]}}
   :plugins [[s3-wagon-private "1.1.2"]]
   :repositories [["snapshots" {:url "s3p://opsee-maven-snapshots/snapshot"
@@ -23,7 +23,7 @@
                  [com.fasterxml.jackson.core/jackson-core "2.2.3"]
                  [com.fasterxml.jackson.core/jackson-databind "2.2.3"]
                  [riemann "0.2.10" :exclusions [com.fasterxml.jackson.core/jackson-databind com.fasterxml.jackson.core/jackson-core]]
-                 [co.opsee/opsee-middleware "0.1.8"]
+                 [co.opsee/opsee-middleware "0.1.9-SNAPSHOT"]
                  [info.sunng/ring-jetty9-adapter "0.9.2"]
                  [com.github.brainlag/nsq-client "1.0.0-SNAPSHOT"]
                  [yesql "0.4.1-SNAPSHOT"]
