@@ -17,7 +17,7 @@
     (try
       (reset! result (v/get* client path {:wait? true :recursive? true :wait-index index :timeout 300}))
       (log/info "wait" index result)
-      (catch SocketTimeoutException _))
+      (catch Exception _))
     (if-not @result
       (recur result)
       @result)))
