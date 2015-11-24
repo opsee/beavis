@@ -133,6 +133,7 @@
   (let [tasks riemann.time/tasks
         tp @riemann.time/threadpool]
     ;; Immediately prevent any additional tasks from executing.
+    (reset! riemann.time/running false)
     (for [t (seq tasks)]
       (riemann.time/cancel t))
     ;; Interrupt any sleeping threads so that they may exit if they can--otherwise we will end up
