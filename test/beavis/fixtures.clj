@@ -135,7 +135,7 @@
                        (.setId "sg-sgsgsg")
                        .build))
        (.setTimestamp (-> (Timestamp/newBuilder)
-                          (.setSeconds (* check-index 30))
+                          (.setSeconds (+ (/ (System/currentTimeMillis) 1000) (* check-index 30)))
                           .build))
        (.addAllResponses (concat
                            (map #(check-response % true) (range 0 passing-count))
