@@ -3,22 +3,13 @@
   (:import (java.util.concurrent ForkJoinPool ForkJoinTask)
            (java.sql BatchUpdateException)))
 
-(defprotocol StreamProducer
-  "The StreamProducer gets messages from the outside world and submits them into the pipeline.
-  There can only be one StreamProducer per pipeline."
-  (start-producer! [this next]
-    "This method starts any connections needed for submitting work into the pipeline.
-    Next is an fn that takes a single parameter, a mapified version of a CheckResult.
-    Start-producer! is called from the main thread and is expected not to block.")
-  (stop-producer! [this]
-    "Cleans up any resources used by this producer. Must not return until the producer
-    is completely shut down and drained, ie next will not be called again."))
-
 (defprotocol ManagedStage
   "Stream stages extending the ManagedStage protocol can initialize or cleanup any resources
   that they might require."
-  (start-stage! [this]
-    "Start method for any resources this stage may manage.")
+  (start-stage! [this next]
+    "This method starts any connections needed for submitting work into the pipeline.
+    Next is an fn that takes a single parameter, a mapified version of a CheckResult.
+    Start-producer! is called from the main thread and is expected not to block.")
   (stop-stage! [this]
     "Stop method for any resources this stage may manage. The pipeline guarantees that no
     other calls to submit will be active when stop-stage! gets called."))
@@ -27,18 +18,16 @@
   "StreamStages perform transformations on CheckResults. Anything wishing to operate on
   CheckResults should implement StreamStage. StreamStages are then composed together
   via the pipeline function."
-  (submit [this work next]
+  (submit [this work]
     "Submit implements the work that this stream stage is meant to perform. Generally, submit
     should not block and you cannot make predictions about which thread will be calling.
-    Submit must also be threadsafe. Next is an fn which takes the transformed CheckResult-map
-    and submits it to the next stage of the stream. If the stream stage is terminal, next
-    needn't be called, however it will not fail regardless."))
+    Submit must also be threadsafe."))
 
-(defn task [work stage counts index total next-callback]
+(defn task [work stage counts index total]
   (proxy [ForkJoinTask] []
     (exec []
       (try
-        (submit stage work next-callback)
+        (submit stage work)
         (catch BatchUpdateException ex (do
                                          (log/error ex (str "stage " stage " ate shit."))
                                          (log/error (.getNextException ex))))
@@ -46,12 +35,12 @@
         (finally (when (= index (dec total))
                    (swap! counts dec)))))))
 
-(defn make-callback [^ForkJoinPool pool stage counts next-index total next-callback]
+(defn make-callback [^ForkJoinPool pool stage counts next-index total]
   (fn [work]
     (when (= 1 next-index)
       (swap! counts inc))
-    (if next-callback
-      (let [t (task work stage counts next-index total next-callback)]
+    (if stage
+      (let [t (task work stage counts next-index total)]
         (.execute pool t)))))
 
 (defn- pipeline-callbacks [^ForkJoinPool pool stages counts]
@@ -61,7 +50,7 @@
            stages (reverse stages)
            callbacks nil]
       (let [callbacks' (cons
-                         (make-callback pool stage counts index total (first callbacks))
+                         [(first stages) (make-callback pool stage counts index total)]
                          callbacks)]
         (if (not-empty stages)
           (recur (- index 1)
@@ -86,13 +75,12 @@
         callbacks (pipeline-callbacks pool (cons producer stages) count)]
     (reify Pipeline
       (start-pipeline! [_]
-        (doseq [stage stages]
-          (when (satisfies? ManagedStage stage)
-            (start-stage! stage)))
-        (start-producer! producer (first callbacks)))
+        (doseq [[stage callback] callbacks]
+          (if (satisfies? ManagedStage stage)
+            (start-stage! stage callback))))
       (stop-pipeline! [_]
         ;first stop the producer which will wait until it's drained
-        (stop-producer! producer)
+        (stop-stage! producer)
         (let [idv (map vector (iterate inc 0) stages)]
           (wait-for-drain count)
           (doseq [[index stage] idv]

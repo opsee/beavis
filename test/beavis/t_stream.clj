@@ -4,7 +4,7 @@
   (:require [beavis.stream :as stream]
             [clojure.tools.logging :as log]
             [opsee.middleware.identifiers :refer [generate-id]])
-  (:import (beavis.stream StreamProducer StreamStage)
+  (:import (beavis.stream StreamStage ManagedStage)
            (co.opsee.proto CheckResult)
            (java.util.concurrent ScheduledThreadPoolExecutor TimeUnit ScheduledFuture)))
 
@@ -16,44 +16,62 @@
 
 (defn producer [count number]
   (let [pool (ScheduledThreadPoolExecutor. 5)]
-    (reify StreamProducer
-      (start-producer! [_ next]
+    (reify ManagedStage
+      (start-stage! [_ next]
         (.scheduleAtFixedRate pool (reify Runnable
                                      (run [_]
                                        (when (< @count number)
                                          (swap! count inc)
                                          (next (work)))))
                               100 100 TimeUnit/MILLISECONDS))
-      (stop-producer! [_]
+      (stop-stage! [_]
         (.shutdown pool)
         (loop []
           (when-not (.awaitTermination pool 1000 TimeUnit/MILLISECONDS)
             (recur)))))))
 
 (defn order-stage [order i]
-  (reify StreamStage
-    (submit [_ work next]
-      (swap! order conj i)
-      (next work))))
+  (let [next (atom nil)]
+    (reify
+      ManagedStage
+      (start-stage! [_ cb]
+        (reset! next cb))
+      (stop-stage! [_])
+      StreamStage
+      (submit [_ work]
+        (swap! order conj i)
+        (@next work)))))
 
 (defn count-stage [count]
-  (reify StreamStage
-    (submit [_ work next]
-      (swap! count inc)
-      (next work))))
+  (let [next (atom nil)]
+    (reify
+      ManagedStage
+      (start-stage! [_ cb]
+        (reset! next cb))
+      (stop-stage! [_])
+      StreamStage
+      (submit [_ work]
+        (swap! count inc)
+        (@next work)))))
 
 (defn terminal-stage []
   (reify StreamStage
-    (submit [_ work next]
+    (submit [_ work]
       )))
 
 (defn modify-and-store-stage [storage cust-id]
-  (reify StreamStage
-    (submit [_ work next]
-      (reset! storage work)
-      (next (-> (.toBuilder work)
-                (.setCustomerId cust-id)
-                (.build))))))
+  (let [next (atom nil)]
+    (reify
+      ManagedStage
+      (start-stage! [_ cb]
+        (reset! next cb))
+      (stop-stage! [_])
+      StreamStage
+      (submit [_ work]
+        (reset! storage work)
+        (@next (-> (.toBuilder work)
+                   (.setCustomerId cust-id)
+                   (.build)))))))
 
 (facts "pipelines basic logic"
   (fact "executes in order"

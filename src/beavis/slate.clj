@@ -85,11 +85,13 @@
                                      RuntimeFactory$RuntimeType/DYNJS)
         nodyn (.newRuntime factory (NodynConfig.))
         runtime (hack/field DynJSRuntime :runtime nodyn)
-        slate (atom nil)]
+        slate (atom nil)
+        next (atom nil)]
     (reset! db db-pool)
     (reify
       ManagedStage
-      (start-stage! [_]
+      (start-stage! [_ next-fn]
+        (reset! next next-fn)
         (let [barrier (CyclicBarrier. 2)]
           (.runAsync nodyn (reify Callback (call [_ _] (.await barrier))))
           (.await barrier)
@@ -98,11 +100,11 @@
       (stop-stage! [_]
         )
       StreamStage
-      (submit [_ work next]
+      (submit [_ work]
         (let [check-id (.getCheckId work)
               responses (.getResponsesList work)
               sertions (get @assertions check-id [])]
-          (next
+          (@next
             (-> (.toBuilder work)
                 .clearResponses
                 (.addAllResponses

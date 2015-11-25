@@ -6,7 +6,7 @@
 
 (defn pass-to-next-stage [& children]
   (fn [event]
-    (next-stage-fn event)
+    (@next-stage-fn event)
     (call-rescue event children)))
 
 (defn is-result [& children]

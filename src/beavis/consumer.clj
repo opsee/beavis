@@ -23,8 +23,8 @@
       nil)))
 
 (defn nsq-stream-producer [nsq-config]
-  (reify StreamProducer
-    (start-producer! [_ next]
+  (reify ManagedStage
+    (start-stage! [_ next]
       (let [lookup (nsq-lookup (:lookup nsq-config) (:produce nsq-config))
             topic "_.results"
             channel-id (str (java.util.UUID/randomUUID) "#ephemeral")]
@@ -34,6 +34,6 @@
                   (.start (NSQConsumer. lookup topic channel-id (handle-message next))))
           (catch Exception e
             (throw (Throwable. "Unable to start consumer." e))))))
-    (stop-producer! [_]
+    (stop-stage! [_]
       (.stop consumer))))
 

@@ -203,12 +203,12 @@
                           notification-fixtures
                           alert-fixtures)
                         (reset! stage (hab/riemann-stage))
-                        (s/start-stage! @stage)
+                        (s/start-stage! @stage noop)
                         (reset-index)
                         (doseq [r [(check-result "154ba57a-5188-11e5-8067-9b5f2d96dce1" "check1" 3 3 0)
                                    (check-result "154ba57a-5188-11e5-8067-9b5f2d96dce1" "check2" 5 2 0)
                                    (check-result "derp" "check3" 3 3 0)]]
-                          (s/submit @stage r noop))))
+                          (s/submit @stage r))))
        (after :facts (do
                        (s/stop-stage! @stage)
                        (reset! stage nil)))]
