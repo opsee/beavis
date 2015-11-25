@@ -49,17 +49,19 @@
       (send-messages event notifications))))
 
 (defn alert-stage [db-conn cfg]
-  (reify
-    ManagedStage
-    (start-stage! [this]
-      (reset! db db-conn)
-      (reset! config cfg)
-      (email/init cfg))
-    (stop-stage! [this]
-      (reset! db nil)
-      (reset! config nil))
-    StreamStage
-    (submit [this work next]
-      (do
-        (handle-event work)
-        (next work)))))
+  (let [next (atom nil)]
+    (reify
+      ManagedStage
+      (start-stage! [this cb]
+        (reset! next cb)
+        (reset! db db-conn)
+        (reset! config cfg)
+        (email/init cfg))
+      (stop-stage! [this]
+        (reset! db nil)
+        (reset! config nil))
+      StreamStage
+      (submit [this work]
+        (do
+          (handle-event work)
+          (@next work))))))

@@ -93,9 +93,9 @@
   (riemann.core/stream! @core event)
   (index/lookup (:index @core) (:host event) (:service event)))
 
-(def ^:dynamic next-stage-fn)
+(def next-stage-fn (atom nil))
 
-(defn handle-event [result next]
+(defn handle-event [result]
   "Handle Results and Responses separately in the same Riemann core.
 
   When an event is received in this stream stage, we first pull the
@@ -124,10 +124,9 @@
   "
   (let [event (to-riemann-event result)
         responses (map stream-and-return (:responses event))]
-    (binding [next-stage-fn next]
       (doall responses)
       (log/debug event)
-      (stream-and-return (assoc event :responses responses)))))
+      (stream-and-return (assoc event :responses responses))))
 
 (defn kill-riemann-tasks []
   (let [tasks riemann.time/tasks
@@ -151,7 +150,8 @@
 (defn riemann-stage []
   (reify
     ManagedStage
-    (start-stage! [_]
+    (start-stage! [_ next]
+      (reset! next-stage-fn next)
       (let [config-file (get-config-path)]
         (riemann.bin/handle-signals)
         (riemann.time/start!)
@@ -166,5 +166,5 @@
       (riemann.config/stop!)
       nil)
     StreamStage
-    (submit [_ work next]
-      (handle-event work next))))
+    (submit [_ work]
+      (handle-event work))))

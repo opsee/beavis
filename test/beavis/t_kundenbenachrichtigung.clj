@@ -45,8 +45,8 @@
                         (fact "creates an alert if no previous alert and failing event"
                               (let [stage (k/alert-stage @db test-config)
                                     event (failing-event greg-id unseen-check-id)]
-                                (s/start-stage! stage)
-                                (s/submit stage event next-fn) => event
+                                (s/start-stage! stage next-fn)
+                                (s/submit stage event) => event
                                 (let [alert (first (sql/get-latest-alert @db {:customer_id greg-id
                                                                               :check_id    unseen-check-id}))]
                                   (:state alert) => "open"
@@ -56,8 +56,8 @@
                         (fact "creates an alert if previous alert was resolved"
                               (let [stage (k/alert-stage @db test-config)
                                     event (failing-event cliff-id resolved-alert-check)]
-                                (s/start-stage! stage)
-                                (s/submit stage event next-fn) => event
+                                (s/start-stage! stage next-fn)
+                                (s/submit stage event) => event
                                 (let [alert (first (sql/get-latest-alert @db {:customer_id cliff-id
                                                                               :check_id    resolved-alert-check}))]
                                   (:state alert) => "open"
@@ -67,8 +67,8 @@
                         (fact "resolves an alert if passing event and previous open alert"
                               (let [stage (k/alert-stage @db test-config)
                                     event (passing-event cliff-id open-alert-check)]
-                                (s/start-stage! stage)
-                                (s/submit stage event next-fn) => event
+                                (s/start-stage! stage next-fn)
+                                (s/submit stage event) => event
                                 (let [alert (first (sql/get-latest-alert @db {:customer_id cliff-id
                                                                               :check_id    open-alert-check}))]
                                   (:state alert) => "resolved"

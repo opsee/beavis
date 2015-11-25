@@ -32,8 +32,8 @@
                      (when (.getPassing response)
                        (swap! passing inc))))]
         (slate/load-assertions @db assertions)
-        (stream/start-stage! slate-stage)
-        (stream/submit slate-stage results next)
+        (stream/start-stage! slate-stage next)
+        (stream/submit slate-stage results)
         @passing => 3))
     (fact "fails a failing check"
       (let [assertions (atom {})
@@ -45,8 +45,8 @@
                      (when (.getPassing response)
                        (swap! passing inc))))]
         (slate/load-assertions @db assertions)
-        (stream/start-stage! slate-stage)
-        (stream/submit slate-stage results next)
+        (stream/start-stage! slate-stage next)
+        (stream/submit slate-stage results)
         @passing => 0))
     (fact "fails only the failing checks"
       (let [assertions (atom {})
@@ -58,6 +58,6 @@
                      (when (= true (.getPassing response))
                        (swap! passing inc))))]
         (slate/load-assertions @db assertions)
-        (stream/start-stage! slate-stage)
-        (stream/submit slate-stage results next)
+        (stream/start-stage! slate-stage next)
+        (stream/submit slate-stage results)
         @passing => 1))))
