@@ -1,5 +1,6 @@
 (ns beavis.stream
-  (:require [clojure.tools.logging :as log])
+  (:require [clojure.tools.logging :as log]
+            [opsee.middleware.core :refer [report-exception]])
   (:import (java.util.concurrent ForkJoinPool ForkJoinTask)
            (java.sql BatchUpdateException)))
 
@@ -31,7 +32,10 @@
         (catch BatchUpdateException ex (do
                                          (log/error ex (str "stage " stage " ate shit."))
                                          (log/error (.getNextException ex))))
-        (catch Throwable ex (log/error ex (str "stage " stage " ate shit.")))
+        (catch Throwable ex
+          (do
+            (log/error ex (str "stage " stage " ate shit."))
+            (report-exception ex)))
         (finally (when (= index (dec total))
                    (swap! counts dec)))))))
 

@@ -22,5 +22,6 @@
   },
   "mandrill": {
     "api-key": "{{MANDRILL_API_KEY}}"
-  }
+  },
+  "yeller":"{{YELLER_API_KEY}}"
 }
