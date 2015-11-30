@@ -97,7 +97,7 @@
             ;; riemann waits until _after_ dt has elapsed so on the _next_ call, it will pass everything through.
             @received-count => 0
             (s/submit @core-stream f4 )
-            @received-count => 4)
+            @received-count => 1)
       (fact "submit returns the correct event"
             (let [events (map #(check-result 3 3 %) (range 1 4))]
               (map #(s/submit @core-stream %) events)

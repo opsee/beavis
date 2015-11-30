@@ -4,11 +4,6 @@
          '[beavis.habilitationsschrift :refer [next-stage-fn]]
          '[clojure.tools.logging :as log])
 
-(defn pass-to-next-stage [& children]
-  (fn [event]
-    (@next-stage-fn event)
-    (call-rescue event children)))
-
 (defn is-result [& children]
   (fn [event]
     (when (contains? event :responses)
@@ -46,4 +41,6 @@
                            (stable 90 :state
                                    index
                                    (is-result
-                                     (pass-to-next-stage)))))))
+                                     (batch 4 120
+                                            (fn [events]
+                                              (@next-stage-fn (first (sort-by :time > events)))))))))))
