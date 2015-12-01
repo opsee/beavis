@@ -18,7 +18,7 @@
     (message [_ msg]
       (let [check-result (convert-message msg)]
         (.finished msg)
-        (if-not (deletions/is-deleted? check-result)
+        (if-not (deletions/is-deleted? (.getCheckId check-result))
           (next check-result)))
       nil)))
 

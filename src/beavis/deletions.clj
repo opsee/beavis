@@ -46,8 +46,9 @@
 
 (defn delete-check [client customer-id check-id]
   (try
+    (swap! deleted-checks assoc check-id customer-id)
     (v/create! client (delete-path check-id) customer-id {:ttl 5600})
     (catch Exception ex (log/error ex "trouble talking to etcd"))))
 
-(defn is-deleted? [^CheckResult results]
-  (contains? @deleted-checks (.getCheckId results)))
+(defn is-deleted? [check-id]
+  (contains? @deleted-checks check-id))
