@@ -1,6 +1,7 @@
 (require '[riemann.streams :refer :all]
          '[riemann.index :refer [lookup]]
          '[riemann.core :as core]
+         '[beavis.deletions :as deletions]
          '[beavis.habilitationsschrift :refer [next-stage-fn]]
          '[clojure.tools.logging :as log])
 
@@ -23,6 +24,18 @@
       (when (nil? indexed)
         (call-rescue event children)))))
 
+(defn safe-index [& children]
+  (fn [event]
+    (if (deletions/is-deleted? (:check_id event))
+      (log/info "ignoring event:" event)
+      (call-rescue event children))))
+
+(defn to-next-function [& children]
+  (fn [events]
+    (let [latest (first (sort-by :time > events))]
+      (when-not (deletions/is-deleted? (:check_id event))
+        (@next-stage-fn latest)))))
+
 (let [index (core/wrap-index (index))]
   ;; This stream must be, in total, synchronous. Any asynchronous operations
   ;; must happen in another stream. This stream only updates the in-memory
@@ -31,7 +44,7 @@
   (streams
     (by [:host :service]
         (not-indexed index
-                     index)
+                     (safe-index index))
         ;; The timestamp for each response and result should be monotonically increasing.
         ;; If we see an older timestamp for any of these, then it is possible out-of-order
         ;; delivery, delayed delivery, or duplicate delivery. In any regard, let's simply
@@ -39,8 +52,7 @@
         (ignore-old-events index
                            ;; three consecutive failures indicates a non-flapping state.
                            (stable 90 :state
-                                   index
+                                   (safe-index index)
                                    (is-result
                                      (batch 4 120
-                                            (fn [events]
-                                              (@next-stage-fn (first (sort-by :time > events)))))))))))
+                                            (to-next-function))))))))

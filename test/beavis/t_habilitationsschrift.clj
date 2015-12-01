@@ -6,7 +6,8 @@
             [beavis.stream :as s]
             [riemann.config :refer [core]]
             [riemann.logging :as logging]
-            [clojure.tools.logging :as log])
+            [clojure.tools.logging :as log]
+            [beavis.deletions :as deletions])
   (:import (clojure.lang PersistentHashMap)))
 
 (def received-count (atom 0))
@@ -15,8 +16,6 @@
 (defn next-callback [event]
   (swap! received-count inc)
   event)
-
-
 
 (facts
   "core services are started"
@@ -53,6 +52,7 @@
   "configuration generally works"
   (with-state-changes
     [(before :facts (do
+                      (reset! deletions/deleted-checks nil)
                       (reset! core-stream (hab/riemann-stage))
                       (s/start-stage! @core-stream next-callback)
                       (reset-index)))
@@ -103,9 +103,12 @@
               (map #(s/submit @core-stream %) events)
               (let [r (s/submit @core-stream result-map)]
                 (:time r) => (.getSeconds (.getTimestamp result-map))))))
-    (let [result-map (check-result 3 1 0)]
+    (let [result (check-result 3 1 0)]
+      (fact "deleted events are ignored"
+            (swap! deletions/deleted-checks assoc (.getCheckId result) (.getCustomerId result))
+            (s/submit @core-stream result) => nil)
       (fact "the state of each response is set in the index"
-            (count (filter #(contains? % :state) (:responses (s/submit @core-stream result-map)))) => 3)
+            (count (filter #(contains? % :state) (:responses (s/submit @core-stream result)))) => 3)
       (fact "the state of a result with multiple failing responses is failing"
-            (:state (s/submit @core-stream result-map)) => false
-            (:passing (s/submit @core-stream result-map)) => false))))
+            (:state (s/submit @core-stream result)) => false
+            (:passing (s/submit @core-stream result)) => false))))
