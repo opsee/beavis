@@ -47,6 +47,7 @@
 (defn delete-check [client customer-id check-id]
   (try
     (swap! deleted-checks assoc check-id customer-id)
+    (hab/delete-all-results {check-id customer-id})
     (v/create! client (delete-path check-id) customer-id {:ttl 5600})
     (catch Exception ex (log/error ex "trouble talking to etcd"))))
 
