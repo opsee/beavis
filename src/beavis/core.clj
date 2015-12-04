@@ -18,29 +18,6 @@
            (org.eclipse.jetty.server Server)
            (org.eclipse.jetty.server.handler ErrorHandler)))
 
-(defn watch-for-change [client]
-  (loop [result (atom nil)]
-    (try
-      (reset! result (v/get client "/opsee.co/assertions" {:wait? true :timeout 30}))
-      (catch SocketTimeoutException _))
-    (if-not @result
-      (recur result)
-      @result)))
-
-(defn assertions-watcher [conf pool assertions]
-  (fn []
-    (let [client (v/connect (:etcd conf))]
-      (loop []
-        (try
-          (slate/load-assertions pool assertions)
-          (log/info "refreshing assertions data" (watch-for-change client))
-          (catch Exception _))
-        (recur)))))
-
-(defn start-assertions-watcher [conf pool assertions]
-  (doto (Thread. (assertions-watcher conf pool assertions))
-        .start))
-
 (defn start-stream [conf pool]
   (let [assertions-watcher (assertions/start-watcher conf pool)
         deletions-watcher (deletions/start-deletion-watcher conf)

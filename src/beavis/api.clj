@@ -1,6 +1,7 @@
 (ns beavis.api
   (:require [clojure.tools.logging :as log]
             [cheshire.core :refer :all]
+            [beavis.assertions :as assertions]
             [opsee.middleware.core :refer :all]
             [opsee.middleware.protobuilder :as pb]
             [ring.middleware.cors :refer [wrap-cors]]
@@ -98,36 +99,39 @@
 
 (defn update-assertion! [check-id assertions]
   (fn [ctx]
-    (with-db-transaction [tx @db]
-      (sql/delete-assertions-by-check-and-customer! tx {:check_id check-id
-                                                        :customer_id (cust-id ctx)})
-      (let [asserts (first (records->rollups
-                             (do-bulk-inserts (cust-id ctx)
-                                              check-id
-                                              (:assertions assertions)
-                                              sql/insert-into-assertions<!
-                                              tx)
-                             :assertions))]
-        #(assoc ctx :assertions asserts)))))
+    (try
+      (with-db-transaction [tx @db]
+        (sql/delete-assertions-by-check-and-customer! tx {:check_id    check-id
+                                                          :customer_id (cust-id ctx)})
+        (let [asserts (first (records->rollups
+                               (do-bulk-inserts (cust-id ctx)
+                                                check-id
+                                                (:assertions assertions)
+                                                sql/insert-into-assertions<!
+                                                tx)
+                               :assertions))]
+          #(assoc ctx :assertions asserts)))
+      (finally (assertions/trigger-reload @etcd-client)))))
 
 (defn delete-assertion! [check-id]
   (fn [ctx]
     (sql/delete-assertions-by-check-and-customer! @db {:check_id check-id
-                                                       :customer_id (cust-id ctx)})))
+                                                       :customer_id (cust-id ctx)})
+    (assertions/trigger-reload @etcd-client)))
 
 (defn create-assertion! [assertions]
   (fn [ctx]
-    (let [ret (with-db-transaction [tx @db]
-                (let [check-id (:check-id assertions)]
-                  {:assertions (first (records->rollups
-                                        (do-bulk-inserts (cust-id ctx)
-                                                         check-id
-                                                         (:assertions assertions)
-                                                         sql/insert-into-assertions<!
-                                                         tx)
-                                        :assertions))}))]
-    (notify-assertions-reload)
-    ret)))
+    (try
+      (with-db-transaction [tx @db]
+        (let [check-id (:check-id assertions)]
+          {:assertions (first (records->rollups
+                                (do-bulk-inserts (cust-id ctx)
+                                                 check-id
+                                                 (:assertions assertions)
+                                                 sql/insert-into-assertions<!
+                                                 tx)
+                                :assertions))}))
+      (finally (assertions/trigger-reload @etcd-client)))))
 
 (defn list-assertions [ctx]
   (records->rollups (sql/get-assertions-by-customer @db (cust-id ctx)) :assertions))
