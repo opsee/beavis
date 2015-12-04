@@ -35,4 +35,6 @@
 
 
 (defn trigger-reload [client]
-  (v/swap! client path #(inc (ensure-int %))))
+  (try
+    (v/swap! client path #(inc (ensure-int %)))
+    (catch Exception _ nil)))
