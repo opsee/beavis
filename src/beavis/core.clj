@@ -8,6 +8,7 @@
             [beavis.stream :as stream]
             [beavis.consumer :as consumer]
             [beavis.deletions :as deletions]
+            [beavis.assertions :as assertions]
             [verschlimmbesserung.core :as v]
             [ring.adapter.jetty9 :refer [run-jetty]]
             [beavis.slate :as slate]
@@ -41,11 +42,10 @@
         .start))
 
 (defn start-stream [conf pool]
-  (let [assertions (atom {})
-        assertions-watcher (start-assertions-watcher conf pool assertions)
+  (let [assertions-watcher (assertions/start-watcher conf pool)
         deletions-watcher (deletions/start-deletion-watcher conf)
         pipeline (stream/pipeline (consumer/nsq-stream-producer (:nsq conf))
-                                  (slate/slate-stage pool assertions)
+                                  (slate/slate-stage pool assertions/assertions)
                                   (hab/riemann-stage)
                                   (alerts/alert-stage pool conf))]
     (stream/start-pipeline! pipeline)))
