@@ -1,6 +1,7 @@
 (ns beavis.assertions
   (:require [verschlimmbesserung.core :as v]
             [beavis.slate :as slate]
+            [clojure.tools.logging :as log]
             [opsee.middleware.nsq :refer [ensure-int]]))
 
 (def assertions (atom {}))
@@ -18,6 +19,7 @@
 (defn reload-assertions [client pool]
   (try
     (let [response (v/get* client path)]
+      (log/info "reloading assertions")
       (slate/load-assertions pool assertions)
       (-> response meta :etcd-index Integer/parseInt inc))
     (catch Exception _ 0)))

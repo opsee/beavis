@@ -24,7 +24,8 @@
                  (let [check-id (:check_id record)
                        recs (get acc check-id [])]
                    (assoc acc check-id (conj recs (map->Assertion record))))) {})
-       (reset! target)))
+       (reset! target))
+  (log/info "assertions" @target))
 
 (declare proto->js)
 
