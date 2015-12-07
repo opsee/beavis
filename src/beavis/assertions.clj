@@ -31,8 +31,17 @@
         (wait-assertions client index)
         (recur (reload-assertions client pool))))))
 
+(defn thread-never-die [f]
+  (fn []
+    (loop []
+      (try
+        (f)
+        (catch Throwable ex (log/error ex "an error occurred in watcher thread " (-> (Thread/currentThread) .getName))))
+      (recur))))
+
 (defn start-watcher [conf pool]
-  (doto (Thread. (watcher conf pool))
+  (doto (Thread. (thread-never-die (watcher conf pool)))
+        (.setName "assertions-watcher")
         .start))
 
 

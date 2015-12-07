@@ -40,8 +40,17 @@
         (wait-deletes client index)
         (recur (reload-deletes client))))))
 
+(defn thread-never-die [f]
+  (fn []
+    (loop []
+      (try
+        (f)
+        (catch Throwable ex (log/error ex "an error occurred in watcher thread " (-> (Thread/currentThread) .getName))))
+      (recur))))
+
 (defn start-deletion-watcher [conf]
-  (doto (Thread. (watcher conf))
+  (doto (Thread. (thread-never-die (watcher conf)))
+        (.setName "deletions-watcher")
         .start))
 
 (defn delete-check [client customer-id check-id]
