@@ -16,6 +16,7 @@
 ;; The two handlers should manage their own side-effects, if they
 ;; mutate the event at all.
 (defn build-failing [event]
+  (log/info "failing event" event)
   (let [failing-group (filter #(false? (:state %)) (:responses event))
         vars {:group_name     (or (get-in event [:target :name]) (get-in event [:target :id]))
               :group_id       (get-in event [:target :id])
