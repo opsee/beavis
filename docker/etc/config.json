@@ -23,5 +23,8 @@
   "mandrill": {
     "api-key": "{{MANDRILL_API_KEY}}"
   },
+  "opsee": {
+    "host": "{{OPSEE_HOST}}"
+  },
   "yeller":"{{YELLER_API_KEY}}"
 }
