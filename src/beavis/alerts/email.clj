@@ -28,7 +28,7 @@
               :fail_count     (count failing-group)
               :instances      (map :target failing-group)
               :first_response (:response (first failing-group))
-              :opsee_host     host}]
+              :opsee_host     @host}]
     (hash->merge-vars vars)))
 
 (defn build-passing [event]
