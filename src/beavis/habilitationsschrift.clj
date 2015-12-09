@@ -53,7 +53,8 @@
         resource-config))))
 
 (defn set-response-state [event]
-  (let [mutated (assoc event :state (or (:passing event) false))]
+  (let [passing (or (:passing event) false)
+        mutated (assoc event :passing passing :state passing)]
     mutated))
 
 (defn set-result-state [event]
@@ -62,7 +63,7 @@
     mutated))
 
 (defn set-error-state [event]
-  (assoc event :passing false))
+  (assoc event :state false :passing false))
 
 (defn set-state [event]
   (cond (:responses event) (set-result-state event)
