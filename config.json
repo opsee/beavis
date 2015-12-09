@@ -14,6 +14,9 @@
     "lookup":{"host":"127.0.0.1","port":4161},
     "produce":{"host":"127.0.0.1","port":4150}
   },
+  "opsee": {
+    "host": "{{OPSEE_HOST}}"
+  },
   "secret":"vape.key",
   "server":{
     "port":8081

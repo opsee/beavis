@@ -4,9 +4,11 @@
             [gws.mandrill.api.messages :as mandrill]))
 
 (def client (atom nil))
+(def host (atom nil))
 
 (defn init [config]
-  (reset! client (mandrill-client/create (get-in config [:mandrill :api-key]))))
+  (reset! client (mandrill-client/create (get-in config [:mandrill :api-key])))
+  (reset! host (get-in config [:opsee :host])))
 
 (defn hash->merge-vars [vars]
   (map
@@ -21,12 +23,12 @@
         vars {:group_name     (or (get-in event [:target :name]) (get-in event [:target :id]))
               :group_id       (get-in event [:target :id])
               :check_name     (:check_name event)
+              :check_id       (:check_id event)
               :instance_count (count (:responses event))
               :fail_count     (count failing-group)
               :instances      (map :target failing-group)
-              ;; TODO(greg): Figure out what this actually is.
-              :instance_path  "https://app.opsee.com/instances"
-              :group_path     "https://app.opsee.com/groups"}]
+              :first_response (:response (first failing-group))
+              :opsee_host     host}]
     (hash->merge-vars vars)))
 
 (defn build-passing [event]
