@@ -16,14 +16,16 @@
     #(hash-map :name % :content (get vars %))
     (keys vars)))
 
-(defn json->pretty [json]
-  (generate-string (parse-string json) {:pretty true}))
+(defn format-response [response]
+  (let [res (if (string? response) {:error response} response)]
+    (generate-string res {:pretty true})))
 
 ;; The two handlers should manage their own side-effects, if they
 ;; mutate the event at all.
 (defn build-failing [event]
   (log/info "failing event" event)
   (let [failing-group (filter #(false? (:state %)) (:responses event))
+        first-fail (first failing-group)
         vars {:group_name     (or (get-in event [:target :name]) (get-in event [:target :id]))
               :group_id       (get-in event [:target :id])
               :check_name     (:check_name event)
@@ -31,7 +33,7 @@
               :instance_count (count (:responses event))
               :fail_count     (count failing-group)
               :instances      (map :target failing-group)
-              :first_response (json->pretty (:response (first failing-group)))
+              :first_response (format-response (or (:response first-fail) (:error first-fail)))
               :opsee_host     @host}]
     (hash->merge-vars vars)))
 
