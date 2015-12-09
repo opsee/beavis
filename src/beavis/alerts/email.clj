@@ -1,5 +1,6 @@
 (ns beavis.alerts.email
   (:require [clojure.tools.logging :as log]
+            [cheshire.core :refer :all]
             [gws.mandrill.client :as mandrill-client]
             [gws.mandrill.api.messages :as mandrill]))
 
@@ -15,6 +16,9 @@
     #(hash-map :name % :content (get vars %))
     (keys vars)))
 
+(defn json->pretty [json]
+  (generate-string (parse-string json) {:pretty true}))
+
 ;; The two handlers should manage their own side-effects, if they
 ;; mutate the event at all.
 (defn build-failing [event]
@@ -27,7 +31,7 @@
               :instance_count (count (:responses event))
               :fail_count     (count failing-group)
               :instances      (map :target failing-group)
-              :first_response (:response (first failing-group))
+              :first_response (json->pretty (:response (first failing-group)))
               :opsee_host     @host}]
     (hash->merge-vars vars)))
 
