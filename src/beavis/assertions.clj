@@ -10,7 +10,7 @@
 (defn wait-assertions [client index]
   (loop [result (atom nil)]
     (try
-      (reset! result (v/get* client path {:wait true :wait-index index :timeout 300}))
+      (reset! result (v/get* client path {:wait true :wait-index index :timeout 30}))
       (catch Exception _))
     (if-not @result
       (recur result)
