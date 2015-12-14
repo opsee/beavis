@@ -70,14 +70,26 @@
       (recur))))
 
 (defprotocol Pipeline
+  (start-pipeline-async! [this])
   (start-pipeline! [this])
   (stop-pipeline! [this]))
+
+(defn startup-task [pipeline]
+  (proxy [ForkJoinTask] []
+    (exec []
+      (try
+        (start-pipeline! pipeline)
+        (catch Exception ex
+          (log/error ex "problem starting pipeline")
+          (report-exception ex))))))
 
 (defn pipeline [producer & stages]
   (let [pool (ForkJoinPool.)
         count (atom 0)
         callbacks (pipeline-callbacks pool (cons producer stages) count)]
     (reify Pipeline
+      (start-pipeline-async! [this]
+        (.execute pool (startup-task this)))
       (start-pipeline! [_]
         (doseq [[stage callback] callbacks]
           (if (satisfies? ManagedStage stage)
