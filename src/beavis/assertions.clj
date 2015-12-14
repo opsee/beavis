@@ -13,7 +13,9 @@
     (try
       (reset! result (v/get* client path {:wait true :wait-index index :timeout 30}))
       (catch SocketTimeoutException _)
-      (catch Exception ex (log/warn ex "caught exception in wait-assertions")))
+      (catch Exception ex
+        (log/warn ex "caught exception in wait-assertions")
+        (Thread/sleep 10000)))
     (if-not @result
       (recur result)
       @result)))
