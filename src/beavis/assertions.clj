@@ -2,7 +2,8 @@
   (:require [verschlimmbesserung.core :as v]
             [beavis.slate :as slate]
             [clojure.tools.logging :as log]
-            [opsee.middleware.nsq :refer [ensure-int]]))
+            [opsee.middleware.nsq :refer [ensure-int]])
+  (:import (java.net SocketTimeoutException)))
 
 (def assertions (atom {}))
 (def path "/opsee.co/assertions")
@@ -11,7 +12,8 @@
   (loop [result (atom nil)]
     (try
       (reset! result (v/get* client path {:wait true :wait-index index :timeout 30}))
-      (catch Exception _))
+      (catch SocketTimeoutException _)
+      (catch Exception ex (log/warn ex "caught exception in wait-assertions")))
     (if-not @result
       (recur result)
       @result)))

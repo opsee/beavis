@@ -4,7 +4,7 @@
             [clojure.tools.logging :as log]
             [wall.hack :as hack]
             [opsee.middleware.protobuilder :as pb]
-            [opsee.middleware.protobuilder :as proto])
+            [opsee.middleware.core :refer [report-exception]])
   (:import (io.nodyn.runtime RuntimeFactory RuntimeFactory$RuntimeType NodynConfig)
            (io.nodyn Callback)
            (java.util.concurrent CyclicBarrier)
@@ -30,15 +30,18 @@
 (declare proto->js)
 
 (defn run-assertion [test-assertion runtime assertion response]
-  (let [response (proto->js (.getDefaultExecutionContext runtime) response)
-        result (-> runtime
-                   .getDefaultExecutionContext
-                   (.call test-assertion (-> runtime
-                                             .getGlobalContext
-                                             .getObject)
-                          (into-array Object [assertion response])))]
-    (log/info "assertion" assertion "response" response "result" result (.get result "success"))
-    (.get result "success")))
+  (try
+    (let [response (proto->js (.getDefaultExecutionContext runtime) response)
+          result (-> runtime
+                     .getDefaultExecutionContext
+                     (.call test-assertion (-> runtime
+                                               .getGlobalContext
+                                               .getObject)
+                            (into-array Object [assertion response])))]
+      (log/info "assertion" assertion "response" response "result" result (.get result "success"))
+      (.get result "success"))
+    (catch Exception ex (report-exception ex {:assertion assertion
+                                              :response (pb/proto->hash response)}))))
 
 (defn run-assertions [test-assertion runtime assertions response]
   (not-any? not (map #(run-assertion test-assertion runtime % response) assertions)))
