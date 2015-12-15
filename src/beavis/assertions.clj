@@ -3,7 +3,7 @@
             [beavis.slate :as slate]
             [clojure.tools.logging :as log]
             [opsee.middleware.nsq :refer [ensure-int]])
-  (:import (java.net SocketTimeoutException)))
+  (:import (java.net SocketTimeoutException MalformedURLException)))
 
 (def assertions (atom {}))
 (def path "/opsee.co/assertions")
@@ -13,9 +13,10 @@
     (try
       (reset! result (v/get* client path {:wait true :wait-index index :timeout 30}))
       (catch SocketTimeoutException _)
+      (catch MalformedURLException _
+        (Thread/sleep 10000))
       (catch Exception ex
-        (log/warn ex "caught exception in wait-assertions")
-        (Thread/sleep 10000)))
+        (log/warn ex "caught exception in wait-assertions")))
     (if-not @result
       (recur result)
       @result)))

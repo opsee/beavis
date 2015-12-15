@@ -25,7 +25,7 @@
                                   (slate/slate-stage pool assertions/assertions)
                                   (hab/riemann-stage)
                                   (alerts/alert-stage pool conf))]
-    (stream/start-pipeline! pipeline)))
+    (stream/start-pipeline-async! pipeline)))
 
 (defn setup-jetty-server [^Server server]
   (.addBean server (doto (ErrorHandler.)
