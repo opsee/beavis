@@ -2,9 +2,7 @@
   (:require [verschlimmbesserung.core :as v]
             [clojure.tools.logging :as log]
             [beavis.habilitationsschrift :as hab]
-            [clojure.string :as str])
-  (:import (java.net SocketTimeoutException)
-           (co.opsee.proto CheckResult)))
+            [clojure.string :as str]))
 
 
 (def path "/opsee.co/deletions")
@@ -12,46 +10,13 @@
 
 (def deleted-checks (atom {}))
 
-(defn wait-deletes [client index]
-  (loop [result (atom nil)]
-    (try
-      (reset! result (v/get* client path {:wait? true :recursive? true :wait-index index :timeout 30}))
-      (log/info "wait" index result)
-      (catch Exception _))
-    (if-not @result
-      (recur result)
-      @result)))
-
-(defn reload-deletes [client]
-  (try
-    (let [response (v/get* client path)]
-      (reset! deleted-checks (into {} (map (fn [node]
-                                             [(-> node :key (str/split #"/") last) (:value node)]))
-                                   (get-in response [:node :nodes])))
-      (log/info "loaded deletions" @deleted-checks)
-      (hab/delete-all-results @deleted-checks)
-      (-> response meta :etcd-index Integer/parseInt inc))
-    (catch Exception _ 0)))
-
-(defn watcher [conf]
-  (fn []
-    (let [client (v/connect (:etcd conf))]
-      (loop [index (reload-deletes client)]
-        (wait-deletes client index)
-        (recur (reload-deletes client))))))
-
-(defn thread-never-die [f]
-  (fn []
-    (loop []
-      (try
-        (f)
-        (catch Throwable ex (log/error ex "an error occurred in watcher thread " (-> (Thread/currentThread) .getName))))
-      (recur))))
-
-(defn start-deletion-watcher [conf]
-  (doto (Thread. (thread-never-die (watcher conf)))
-        (.setName "deletions-watcher")
-        .start))
+(defn reload-deletes [response]
+  (reset! deleted-checks (into {} (map (fn [node]
+                                         [(-> node :key (str/split #"/") last) (:value node)]))
+                               (get-in response [:node :nodes])))
+  (log/info "loaded deletions" @deleted-checks)
+  (hab/wait-for-index)
+  (hab/delete-all-results @deleted-checks))
 
 (defn delete-check [client customer-id check-id]
   (try

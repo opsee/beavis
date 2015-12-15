@@ -33,6 +33,10 @@
 (defn delete [event]
   (index/delete (:index @core) event))
 
+(defn wait-for-index []
+  (while (nil? (:index @core))
+    (Thread/sleep 200)))
+
 (defn delete-all-results [deletions]
   (doseq [[check-id customer-id] deletions]
     (let [results (query {:service     check-id

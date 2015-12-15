@@ -25,7 +25,7 @@
                        recs (get acc check-id [])]
                    (assoc acc check-id (conj recs (map->Assertion record))))) {})
        (reset! target))
-  (log/info "assertions" @target))
+  (log/info "loaded assertions" @target))
 
 (declare proto->js)
 

@@ -12,15 +12,15 @@
             [verschlimmbesserung.core :as v]
             [ring.adapter.jetty9 :refer [run-jetty]]
             [beavis.slate :as slate]
+            [opsee.middleware.watcher :as watcher]
             [beavis.habilitationsschrift :as hab]
             [beavis.kundenbenachrichtigung :as alerts])
-  (:import (java.net SocketTimeoutException)
-           (org.eclipse.jetty.server Server)
+  (:import (org.eclipse.jetty.server Server)
            (org.eclipse.jetty.server.handler ErrorHandler)))
 
 (defn start-stream [conf pool]
-  (let [assertions-watcher (assertions/start-watcher conf pool)
-        deletions-watcher (deletions/start-deletion-watcher conf)
+  (let [assertions-watcher (watcher/start "assertions" (:etcd conf) (fn [_] (assertions/reload-assertions pool)) assertions/path)
+        deletions-watcher (watcher/start "deletions" (:etcd conf) deletions/reload-deletes deletions/path {:recursive? true})
         pipeline (stream/pipeline (consumer/nsq-stream-producer (:nsq conf))
                                   (slate/slate-stage pool assertions/assertions)
                                   (hab/riemann-stage)
