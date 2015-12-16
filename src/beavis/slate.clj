@@ -17,6 +17,7 @@
 (def db (atom nil))
 
 (defrecord Assertion [key value relationship operand])
+(defrecord JibberScript [slate runtime])
 
 (defn load-assertions [pool target]
   (->> (sql/get-assertions pool)
@@ -29,22 +30,25 @@
 
 (declare proto->js)
 
-(defn run-assertion [test-assertion runtime assertion response]
+(defn run-assertion [jibberscript assertion response]
   (try
-    (let [response (proto->js (.getDefaultExecutionContext runtime) response)
+    (let [runtime (:runtime jibberscript)
+          response (proto->js (.getDefaultExecutionContext runtime) response)
           result (-> runtime
                      .getDefaultExecutionContext
-                     (.call test-assertion (-> runtime
-                                               .getGlobalContext
-                                               .getObject)
+                     (.call (:slate jibberscript) (-> (:runtime jibberscript)
+                                                      .getGlobalContext
+                                                      .getObject)
                             (into-array Object [assertion response])))]
       (log/info "assertion" assertion "response" response "result" result (.get result "success"))
       (.get result "success"))
-    (catch Exception ex (report-exception ex {:assertion assertion
-                                              :response (pb/proto->hash response)}))))
+    (catch Exception ex (do
+                          (report-exception ex {:assertion assertion
+                                                :response (pb/proto->hash response)})
+                          (throw ex)))))
 
-(defn run-assertions [test-assertion runtime assertions response]
-  (not-any? not (map #(run-assertion test-assertion runtime % response) assertions)))
+(defn run-assertions [jibberscript assertions response]
+  (not-any? not (map #(run-assertion jibberscript % response) assertions)))
 
 
 (defn any->js [ec ^Any any]
@@ -52,8 +56,6 @@
         clazz (Class/forName (str "co.opsee.proto." type))
         proto (Reflector/invokeStaticMethod clazz "parseFrom" (to-array [(.getValue any)]))]
     (proto->js ec proto)))
-
-
 
 (defn- unpack-value [ec ^Descriptors$FieldDescriptor field value]
   (pb/case-enum (.getJavaType field)
@@ -67,7 +69,6 @@
                 WireFormat$JavaType/STRING value
                 WireFormat$JavaType/MESSAGE (case (.getName (.getMessageType field))
                                               "Any" (any->js ec value)
-                                              ;"Timestamp" (timestamp->js ec value)
                                               (proto->js ec value))))
 
 (defn unpack-repeated-or-single [ec ^Descriptors$FieldDescriptor field value]
@@ -82,25 +83,29 @@
       (.put js ec (.getName field) unpacked true))
     js))
 
-(defn slate-stage [db-pool assertions]
+(defn init-jibberscript []
   (let [factory (RuntimeFactory/init (-> (Object.)
                                          .getClass
                                          .getClassLoader)
                                      RuntimeFactory$RuntimeType/DYNJS)
         nodyn (.newRuntime factory (NodynConfig.))
         runtime (hack/field DynJSRuntime :runtime nodyn)
-        slate (atom nil)
+        barrier (CyclicBarrier. 2)]
+    (.runAsync nodyn (reify Callback (call [_ _] (.await barrier))))
+    (.await barrier)
+    (.evaluate runtime "load('jvm-npm.js');")
+    (log/info "initialized javascript runtime")
+    (->JibberScript (.evaluate runtime "require('./js/slate/index');") runtime)))
+
+(defn slate-stage [db-pool assertions]
+  (let [jibberscript (atom nil)
         next (atom nil)]
     (reset! db db-pool)
     (reify
       ManagedStage
       (start-stage! [_ next-fn]
         (reset! next next-fn)
-        (let [barrier (CyclicBarrier. 2)]
-          (.runAsync nodyn (reify Callback (call [_ _] (.await barrier))))
-          (.await barrier)
-          (.evaluate runtime "load('jvm-npm.js');")
-          (reset! slate (.evaluate runtime "require('./js/slate/index');"))))
+        (reset! jibberscript (init-jibberscript)))
       (stop-stage! [_]
         )
       StreamStage
@@ -108,17 +113,25 @@
         (let [check-id (.getCheckId work)
               responses (.getResponsesList work)
               sertions (get @assertions check-id [])]
-          (@next
-            (-> (.toBuilder work)
-                .clearResponses
-                (.addAllResponses
-                  (for [resp responses]
-                    (if (.hasResponse resp)
-                      (let [http-resp (pb/decode-any (.getResponse resp))]
-                        (-> (.toBuilder resp)
-                            (.setPassing (run-assertions @slate runtime sertions http-resp))
-                            .build))
-                      (-> (.toBuilder resp)
-                          (.setPassing false)
-                          .build))))
-                .build)))))))
+          (while
+            (not
+              (try
+                (@next
+                  (-> (.toBuilder work)
+                      .clearResponses
+                      (.addAllResponses
+                        (for [resp responses]
+                          (if (.hasResponse resp)
+                            (let [http-resp (pb/decode-any (.getResponse resp))]
+                              (-> (.toBuilder resp)
+                                  (.setPassing (run-assertions @jibberscript sertions http-resp))
+                                  .build))
+                            (-> (.toBuilder resp)
+                                (.setPassing false)
+                                .build))))
+                      .build))
+                true
+                (catch IllegalStateException _
+                  (do
+                    (reset! jibberscript (init-jibberscript))
+                    false))))))))))
