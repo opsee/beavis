@@ -95,6 +95,7 @@
     mutated))
 
 (defn stream-and-return [event]
+  (wait-for-index)
   (riemann.core/stream! @core event)
   (index/lookup (:index @core) (:host event) (:service event)))
 
