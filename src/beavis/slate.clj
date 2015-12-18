@@ -94,8 +94,10 @@
     (.runAsync nodyn (reify Callback (call [_ _] (.await barrier))))
     (.await barrier)
     (.evaluate runtime "load('jvm-npm.js');")
-    (log/info "initialized javascript runtime")
-    (->JibberScript (.evaluate runtime "require('./js/slate/index');") runtime)))
+
+    (let [jibber (->JibberScript (.evaluate runtime "require('./js/slate/index');") runtime)]
+      (log/info "initialized javascript runtime" jibber)
+      jibber)))
 
 (defn slate-stage [db-pool assertions]
   (let [jibberscript (atom nil)
