@@ -51,9 +51,7 @@
 (defn handle-event [event notification]
   (let [template (if (true? (:passing event)) "check-pass" "check-fail")]
 
-    (let [resp (mandrill/send-template @client {:message          {:from_email        "alerts@opsee.com"
-                                                                   :from_name         "Oopsee"
-                                                                   :to                [{:email (:value notification) :type "to"}]
+    (let [resp (mandrill/send-template @client {:message          {:to                [{:email (:value notification) :type "to"}]
                                                                    :global_merge_vars (build-template-vars event)}
                                                 :template_name    template
                                                 :template_content {}})]
