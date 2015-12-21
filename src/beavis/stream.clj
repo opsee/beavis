@@ -1,5 +1,6 @@
 (ns beavis.stream
   (:require [clojure.tools.logging :as log]
+            [clojure.string :as str]
             [opsee.middleware.core :refer [report-exception]])
   (:import (java.util.concurrent ForkJoinPool ForkJoinTask)
            (java.sql BatchUpdateException)))
@@ -62,6 +63,22 @@
                  (rest stages)
                  callbacks')
           callbacks)))))
+
+(defn trunc [s n]
+  (if (> (count s) n)
+    (str (subs s 0 n) "...")
+    s))
+
+(defn log-body [body]
+  (-> body
+      (str/escape {\newline "\\n"})
+      (trunc 200)))
+
+(defn event-for-logging [event]
+  (update event :responses
+          (partial map #(if (get-in % [:response :value :body])
+                         (update-in % [:response :value :body] log-body)
+                         %))))
 
 (defn- wait-for-drain [counts]
   (loop []

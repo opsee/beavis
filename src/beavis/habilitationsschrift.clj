@@ -131,7 +131,7 @@
   (let [event (to-riemann-event result)
         responses (map stream-and-return (:responses event))]
       (doall responses)
-      (log/debug event)
+      (log/debug (event-for-logging event))
       (stream-and-return (assoc event :responses responses))))
 
 (defn kill-riemann-tasks []

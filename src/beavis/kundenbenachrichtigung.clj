@@ -38,7 +38,7 @@
                                                                                                 "")}
         alert (first (sql/get-latest-alert @db event))
         notifications (sql/get-notifications-by-check-and-customer @db event-id)]
-    (log/debug "Handling event: event=" event " alert=" alert " notifications=" notifications)
+    (log/debug "Handling event: event=" (event-for-logging event) " alert=" alert " notifications=" notifications)
     (when (resolve-predicate event alert)
       (log/info "Resolving alert for event: " event-id)
       (sql/resolve-alert! @db {:alert_id (:id alert)})
