@@ -101,6 +101,9 @@
 
 (def next-stage-fn (atom nil))
 
+(defn log-index []
+  (log/debug (map #(event-for-logging %) (:index @core))))
+
 (defn handle-event [result]
   "Handle Results and Responses separately in the same Riemann core.
 
@@ -128,11 +131,14 @@
   This may happen in the case that this was considered a service flap
   by Riemann.
   "
-  (let [event (to-riemann-event result)
-        responses (map stream-and-return (:responses event))]
-      (doall responses)
-      (log/debug (event-for-logging event))
-      (stream-and-return (assoc event :responses responses))))
+  (let [event (to-riemann-event result)]
+    (log/debug (event-for-logging event))
+    (if (= "instance" (get-in event [:target :type]))
+      (stream-and-return event)
+      (let [responses (map stream-and-return (:responses event))
+            _ (doall responses)
+            event' (stream-and-return (assoc event :responses responses))]
+        event'))))
 
 (defn kill-riemann-tasks []
   (let [tasks riemann.time/tasks

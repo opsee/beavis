@@ -75,10 +75,13 @@
       (trunc 200)))
 
 (defn event-for-logging [event]
-  (update event :responses
-          (partial map #(if (get-in % [:response :value :body])
-                         (update-in % [:response :value :body] log-body)
-                         %))))
+  (cond
+    (:responses event) (update event :responses
+                               (partial map #(if (get-in % [:response :value :body])
+                                              (update-in % [:response :value :body] log-body)
+                                              %)))
+    (:response event) (update-in event [:response :value :body] log-body)
+    :else event))
 
 (defn- wait-for-drain [counts]
   (loop []
