@@ -32,8 +32,9 @@
 
 (defn to-next-function [& children]
   (fn [events]
-    (when-not (deletions/is-deleted? (:check_id event))
-      (@next-stage-fn event))))
+    (let [latest (first (sort-by :time > events))]
+      (when-not (deletions/is-deleted? (:check_id event))
+        (@next-stage-fn latest)))))
 
 (let [index (core/wrap-index (index))]
   ;; This stream must be, in total, synchronous. Any asynchronous operations
