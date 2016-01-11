@@ -137,7 +137,7 @@
       (stream-and-return event)
       (let [responses (map stream-and-return (:responses event))
             _ (doall responses)
-            event' (stream-and-return (assoc event :responses responses))]
+            event' (stream-and-return event)]
         event'))))
 
 (defn kill-riemann-tasks []
