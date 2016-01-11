@@ -31,10 +31,9 @@
       (call-rescue event children))))
 
 (defn to-next-function [& children]
-  (fn [events]
-    (let [latest (first (sort-by :time > events))]
-      (when-not (deletions/is-deleted? (:check_id event))
-        (@next-stage-fn latest)))))
+  (fn [event]
+    (when-not (deletions/is-deleted? (:check_id event))
+      (@next-stage-fn event))))
 
 (let [index (core/wrap-index (index))]
   ;; This stream must be, in total, synchronous. Any asynchronous operations
@@ -53,6 +52,6 @@
                            ;; three consecutive failures indicates a non-flapping state.
                            (stable 90 :state
                                    (safe-index index)
-                                   (is-result
-                                     (batch 3 90
-                                            (to-next-function))))))))
+                                   (changed :state
+                                            (is-result
+                                              (to-next-function))))))))
