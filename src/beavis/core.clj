@@ -18,11 +18,11 @@
   (:import (org.eclipse.jetty.server Server)
            (org.eclipse.jetty.server.handler ErrorHandler)))
 
-(defn start-stream [conf pool]
+(defn start-stream [conf pool bartnet-pool]
   (let [assertions-watcher (watcher/start "assertions" (:etcd conf) (fn [_] (assertions/reload-assertions pool)) assertions/path)
         deletions-watcher (watcher/start "deletions" (:etcd conf) deletions/reload-deletes deletions/path {:recursive? true})
         pipeline (stream/pipeline (consumer/nsq-stream-producer (:nsq conf))
-                                  (slate/slate-stage pool assertions/assertions)
+                                  (slate/slate-stage bartnet-pool assertions/assertions)
                                   (hab/riemann-stage)
                                   (alerts/alert-stage pool conf))]
     (stream/start-pipeline-async! pipeline)))
@@ -33,9 +33,10 @@
 
 (defn start-server [args]
   (let [conf (config (last args))
-        db (pool (:db-spec conf))]
-    (start-stream conf db)
-    (run-jetty (api/handler db conf) (assoc (:server conf) :configurator setup-jetty-server))))
+        db (pool (:db-spec conf))
+        bartnet-db (pool (:bartnet-db-spec conf))]
+    (start-stream conf db bartnet-db)
+    (run-jetty (api/handler db bartnet-db conf) (assoc (:server conf) :configurator setup-jetty-server))))
 
 (defn -main [& args]
   (let [cmd (first args)

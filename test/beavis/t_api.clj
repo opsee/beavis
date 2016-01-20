@@ -15,6 +15,8 @@
             [beavis.habilitationsschrift :as hab]
             [opsee.middleware.config :refer [config]]
             [opsee.middleware.core :refer [slurp-bytes]]
+            [opsee.middleware.migrate :refer [migrate-db]]
+            [opsee.middleware.pool :refer [pool]]
             [beavis.habilitationsschrift :as hab]))
 
 ; this token is for {"id":8,"customer_id":"154ba57a-5188-11e5-8067-9b5f2d96dce1","email":"cliff@leaninto.it","name":"cliff","verified":true,"admin":false,"active":true}
@@ -24,27 +26,35 @@
                       "IiOiJjbGlmZkBsZWFuaW50by5pdCIsImlhdCI6MTQ0MTIxMjE0MSwibmFtZSI6ImNsaWZmIiwiYWRtaW4iOmZhbHNlfQ=="))
 
 (def defaults {"DB_NAME" "beavis_test",
-               "DB_HOST" "localhost",
+               "DB_HOST" "beavis_dbhost",
                "DB_PORT" "5432",
-               "DB_USER" "postgres",
+               "DB_USER" "postgres"
                "DB_PASS" ""})
 (def test-config (config "resources/test-config.json" defaults))
+(def bartnet-db (atom nil))
 
 (defn do-setup []
   (do
     (log/info test-config defaults)
+    ;; It's okay if we have two test databases that are identical. We only
+    ;; use the assertions table in this one but the schema are mostly the
+    ;; same.
+    (when-not @bartnet-db 
+      (reset! bartnet-db (pool (:bartnet-db-spec test-config)))
+      (log/info "bartnet-db is: " @bartnet-db)
+      (migrate-db @bartnet-db {:drop-all true :silent true}))
     (start-connection test-config)))
 
 (defn app []
   (do
     (log/info "start server")
-    (api/handler @db test-config)))
+    (api/handler @db @bartnet-db test-config)))
 
 (facts "assertions endpoint"
   (with-state-changes
-    [(before :facts (doto
-                      (do-setup)
-                      assertion-fixtures))]
+    [(before :facts (do
+                      (do-setup) 
+                      (assertion-fixtures @bartnet-db)))]
     (fact "gets all assertions"
       (let [response ((app) (-> (mock/request :get "/assertions")
                                 (mock/header "Authorization" auth-header)))]
@@ -85,7 +95,7 @@
                                                                       :relationship "notEqual"
                                                                       :operand      "application/json"})]
                                                               :in-any-order)}))
-        (sql/get-assertions-by-check @db "abc123") => (contains [(contains {:key          "code"
+        (sql/get-assertions-by-check @bartnet-db "abc123") => (contains [(contains {:key          "code"
                                                                             :relationship "equal"
                                                                             :operand      "200"})
                                                                  (contains {:key          "header"
@@ -96,9 +106,9 @@
 
 (facts "assertion endpoint"
   (with-state-changes
-    [(before :facts (doto
+    [(before :facts (do
                       (do-setup)
-                      assertion-fixtures))]
+                      (assertion-fixtures @bartnet-db)))]
     (fact "gets an assertion"
       (let [response ((app) (-> (mock/request :get "/assertions/hello")
                                 (mock/header "Authorization" auth-header)))]
@@ -116,7 +126,7 @@
       (let [response ((app) (-> (mock/request :delete "/assertions/hello")
                                 (mock/header "Authorization" auth-header)))]
         (:status response) => 204
-        (sql/get-assertions-by-check @db "hello") => empty?))
+        (sql/get-assertions-by-check @bartnet-db "hello") => empty?))
     (fact "replaces an assertion"
       (let [response ((app) (-> (mock/request :put "/assertions/hello" (generate-string {:check-id "hello"
                                                                                          :assertions [{:key          "code"
@@ -127,7 +137,7 @@
         (:body response) => (is-json (just {:check-id "hello"
                                             :assertions (just [(contains {:relationship "notEqual"
                                                                           :operand 500})])}))
-        (sql/get-assertions-by-check @db "hello") => (just [(contains {:key          "code"
+        (sql/get-assertions-by-check @bartnet-db "hello") => (just [(contains {:key          "code"
                                                                        :relationship "notEqual"
                                                                        :operand      "500"})])))))
 
@@ -197,9 +207,9 @@
 (facts "results endpoint"
     (with-state-changes
       [(before :facts (do
+                        (assertion-fixtures @bartnet-db)
                         (doto
                           (do-setup)
-                          assertion-fixtures
                           notification-fixtures
                           alert-fixtures)
                         (reset! stage (hab/riemann-stage))
@@ -247,5 +257,5 @@
                                   (mock/header "Authorization" auth-header)))]
           (:status response) => 204
           (sql/get-notifications-by-check @db "check1") => empty?
-          (sql/get-assertions-by-check @db "check1") => empty?
+          (sql/get-assertions-by-check @bartnet-db "check1") => empty?
           (sql/get-alerts-by-check @db "check1") => empty?))))

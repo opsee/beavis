@@ -24,7 +24,7 @@
   event)
 
 (def defaults {"DB_NAME" "beavis_test",
-               "DB_HOST" "localhost",
+               "DB_HOST" "beavis_dbhost",
                "DB_PORT" "5432",
                "DB_USER" "postgres",
                "DB_PASS" ""})
