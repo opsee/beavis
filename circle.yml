@@ -5,11 +5,11 @@ checkout:
 dependencies:
   override:
     - docker info
+    - docker-compose version
     - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS quay.io
     - docker pull quay.io/opsee/build-clj
     - docker pull sameersbn/postgresql:9.4-3
-    - docker run --name beavis_dbhost -d -e PSQL_TRUST_LOCALNET=true -e DB_USER=postgres -e DB_PASS= -e DB_NAME=beavis_test sameersbn/postgresql:9.4-3
-    - docker run --name bartnet_dbhost -d -e PSQL_TRUST_LOCALNET=true -e DB_USER=postgres -e DB_PASS= -e DB_NAME=bartnet_test sameersbn/postgresql:9.4-3
+    - docker-compose up -d
     - npm --version
     - lein deps
     - cd js/slate && npm install
