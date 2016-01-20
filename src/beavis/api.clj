@@ -26,6 +26,7 @@
 ;;;;;========== Globals (eat my ass) ======
 
 (def db (atom nil))
+(def bartnet-db (atom nil))
 (def etcd-client (atom nil))
 
 ;;;;;========== Resource Callbacks =========
@@ -91,7 +92,7 @@
 
 (defn assertion-exists? [check-id]
   (fn [ctx]
-    (let [check-assertion (-> (sql/get-assertions-by-check-and-customer @db {:check_id check-id
+    (let [check-assertion (-> (sql/get-assertions-by-check-and-customer @bartnet-db {:check_id check-id
                                                                              :customer_id (cust-id ctx)})
                               (records->rollups :assertions)
                               first)]
@@ -100,7 +101,7 @@
 (defn update-assertion! [check-id assertions]
   (fn [ctx]
     (try
-      (with-db-transaction [tx @db]
+      (with-db-transaction [tx @bartnet-db]
         (sql/delete-assertions-by-check-and-customer! tx {:check_id    check-id
                                                           :customer_id (cust-id ctx)})
         (let [asserts (first (records->rollups
@@ -115,14 +116,14 @@
 
 (defn delete-assertion! [check-id]
   (fn [ctx]
-    (sql/delete-assertions-by-check-and-customer! @db {:check_id check-id
+    (sql/delete-assertions-by-check-and-customer! @bartnet-db {:check_id check-id
                                                        :customer_id (cust-id ctx)})
     (assertions/trigger-reload @etcd-client)))
 
 (defn create-assertion! [assertions]
   (fn [ctx]
     (try
-      (with-db-transaction [tx @db]
+      (with-db-transaction [tx @bartnet-db]
         (let [check-id (:check-id assertions)]
           {:assertions (first (records->rollups
                                 (do-bulk-inserts (cust-id ctx)
@@ -134,7 +135,7 @@
       (finally (assertions/trigger-reload @etcd-client)))))
 
 (defn list-assertions [ctx]
-  (records->rollups (sql/get-assertions-by-customer @db (cust-id ctx)) :assertions))
+  (records->rollups (sql/get-assertions-by-customer @bartnet-db (cust-id ctx)) :assertions))
 
 (defn notification-exists? [check-id]
   (fn [ctx]
@@ -191,7 +192,7 @@
                 :check_id check-id}]
       (deletions/delete-check @etcd-client customer-id check-id)
       (sql/delete-notifications-by-check-and-customer! @db slug)
-      (sql/delete-assertions-by-check-and-customer! @db slug)
+      (sql/delete-assertions-by-check-and-customer! @bartnet-db slug)
       (sql/delete-alerts-by-check-and-customer! @db slug))))
 
 ;;;;;========== Resource Defs =========
@@ -347,8 +348,9 @@
 
   (rt/not-found "Not found."))
 
-(defn handler [pool config]
+(defn handler [pool bartnet-pool config]
   (reset! db pool)
+  (reset! bartnet-db bartnet-pool)
   (reset! etcd-client (v/connect (:etcd config)))
   (-> beavis-api
       log-request

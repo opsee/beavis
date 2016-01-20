@@ -9,6 +9,8 @@
     "min-conns":1,
     "init-conns":1
   },
+  "bartnet-db": {
+  },
   "etcd":"http://127.0.0.1:2379",
   "nsq":{
     "lookup":{"host":"127.0.0.1","port":4161},

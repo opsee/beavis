@@ -11,6 +11,18 @@
     "min-conns":1,
     "init-conns":1
   },
+  "bartnet-db-spec": {
+    "classname":"org.postgresql.Driver",
+    "subprotocol":"postgresql",
+    "host":"{{BARTNET_DB_HOST}}",
+    "port":"{{BARTNET_DB_PORT}}",
+    "subname":"{{BARTNET_DB_NAME}}",
+    "user":"{{BARTNET_DB_USER}}",
+    "password":"{{BARTNET_DB_PASS}}",
+    "max-conns":6,
+    "min-conns":1,
+    "init-conns":1
+  },
   "secret":"/beavis/etc/vape.key",
   "server":{
     "port":2020

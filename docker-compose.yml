@@ -1,0 +1,14 @@
+beavis_dbhost:
+  image: sameersbn/postgresql:9.4-3
+  environment:
+    DB_NAME: beavis_test
+    DB_PASS: ""
+    DB_USER: postgres
+    PSQL_TRUST_LOCALNET: "true"
+bartnet_dbhost:
+  image: sameersbn/postgresql:9.4-3
+  environment:
+    DB_NAME: bartnet_test
+    DB_PASS: ""
+    DB_USER: postgres
+    PSQL_TRUST_LOCALNET: "true"
