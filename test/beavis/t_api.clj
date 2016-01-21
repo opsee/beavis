@@ -55,13 +55,16 @@
                                                                                      :relationship "equal"
                                                                                      :operand      "text/plain"})
                                                                               (just {:key          "code"
+                                                                                     :value        ""
                                                                                      :relationship "equal"
                                                                                      :operand      200})] :in-any-order)})
                                                 (just {:check-id   "check2"
                                                        :assertions (contains [(just {:key          "body"
+                                                                                     :value        ""
                                                                                      :relationship "contain"
                                                                                      :operand      "OK"})
                                                                               (just {:key          "code"
+                                                                                     :value        ""
                                                                                      :relationship "notEqual"
                                                                                      :operand      500})] :in-any-order)})] :in-any-order))))
     (fact "posts new assertions"
@@ -79,6 +82,7 @@
         (:body response) => (is-json (just {:check-id   "abc123"
                                             :assertions (just [(just {:key          "code"
                                                                       :relationship "equal"
+                                                                      :value        ""
                                                                       :operand      200})
                                                                (just {:key          "header"
                                                                       :value        "content-type"
@@ -86,6 +90,7 @@
                                                                       :operand      "application/json"})]
                                                               :in-any-order)}))
         (sql/get-assertions-by-check @db "abc123") => (contains [(contains {:key          "code"
+                                                                            :value        ""
                                                                             :relationship "equal"
                                                                             :operand      "200"})
                                                                  (contains {:key          "header"
@@ -109,6 +114,7 @@
                                                                           :relationship "equal"
                                                                           :operand "text/plain"})
                                                                    (just {:key "code"
+                                                                          :value ""
                                                                           :relationship "equal"
                                                                           :operand 200})]
                                                                   :in-any-order)}))))
@@ -125,9 +131,12 @@
                                 (mock/header "Authorization" auth-header)))]
         (:status response) => 200
         (:body response) => (is-json (just {:check-id "hello"
-                                            :assertions (just [(contains {:relationship "notEqual"
+                                            :assertions (just [(contains {:key "code"
+                                                                          :value ""
+                                                                          :relationship "notEqual"
                                                                           :operand 500})])}))
         (sql/get-assertions-by-check @db "hello") => (just [(contains {:key          "code"
+                                                                       :value ""
                                                                        :relationship "notEqual"
                                                                        :operand      "500"})])))))
 
