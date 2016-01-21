@@ -17,27 +17,33 @@
   (sql/insert-into-assertions<! db {:customer_id  "154ba57a-5188-11e5-8067-9b5f2d96dce1"
                                     :check_id     "hello"
                                     :key          "code"
+                                    :value         ""
                                     :relationship "equal"
                                     :operand      "200"})
   (sql/insert-into-assertions<! db {:customer_id  "154ba57a-5188-11e5-8067-9b5f2d96dce1"
                                     :check_id     "check2"
                                     :key          "body"
+                                    :value        ""
                                     :relationship "contain"
                                     :operand      "OK"})
   (sql/insert-into-assertions<! db {:customer_id  "154ba57a-5188-11e5-8067-9b5f2d96dce1"
                                     :check_id     "check2"
                                     :key          "code"
+                                    :value        ""
                                     :relationship "notEqual"
                                     :operand      "500"})
   (sql/insert-into-assertions<! db {:customer_id  "154ba57a-5188-11e5-8067-9b5f2d96dce1"
                                     :check_id     "goodcheck"
                                     :key          "code"
+                                    :value        ""
                                     :relationship "equal"
                                     :operand      "200"})
   (sql/insert-into-assertions<! db {:customer_id  "154ba57a-5188-11e5-8067-9b5f2d96dce1"
                                     :check_id     "check1"
                                     :key          "body"
-                                    :relationship "notEmpty"}))
+                                    :value        ""
+                                    :relationship "notEmpty"
+                                    :operand      ""}))
 
 (defn notification-fixtures [db]
   (sql/insert-into-notifications<! db {:customer_id "154ba57a-5188-11e5-8067-9b5f2d96dce1"

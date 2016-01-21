@@ -97,6 +97,10 @@
                               first)]
       {:assertions check-assertion})))
 
+(defn ensure-assertion-fields [assertion]
+  (let [required [:key :value :operand]]
+    (reduce (fn [acc k] (assoc acc k (or (k acc) ""))) assertion required)))
+
 (defn update-assertion! [check-id assertions]
   (fn [ctx]
     (try
@@ -106,7 +110,7 @@
         (let [asserts (first (records->rollups
                                (do-bulk-inserts (cust-id ctx)
                                                 check-id
-                                                (:assertions assertions)
+                                                (map ensure-assertion-fields (:assertions assertions))
                                                 sql/insert-into-assertions<!
                                                 tx)
                                :assertions))]
@@ -127,7 +131,7 @@
           {:assertions (first (records->rollups
                                 (do-bulk-inserts (cust-id ctx)
                                                  check-id
-                                                 (:assertions assertions)
+                                                 (map ensure-assertion-fields (:assertions assertions))
                                                  sql/insert-into-assertions<!
                                                  tx)
                                 :assertions))}))

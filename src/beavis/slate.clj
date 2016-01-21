@@ -112,29 +112,31 @@
         )
       StreamStage
       (submit [_ work]
-        (when (< (.getVersion work) 1)
-          (let [check-id (.getCheckId work)
-                responses (.getResponsesList work)
-                sertions (get @assertions check-id [])]
-            (while
-              (not
-                (try
-                  (@next
-                    (-> (.toBuilder work)
-                        .clearResponses
-                        (.addAllResponses
-                          (for [resp responses]
-                            (if (.hasResponse resp)
-                              (let [http-resp (pb/decode-any (.getResponse resp))]
+        (if (< (.getVersion work) 1)
+          (do
+            (let [check-id (.getCheckId work)
+                  responses (.getResponsesList work)
+                  sertions (get @assertions check-id [])]
+              (while
+                (not
+                  (try
+                    (@next
+                      (-> (.toBuilder work)
+                          .clearResponses
+                          (.addAllResponses
+                            (for [resp responses]
+                              (if (.hasResponse resp)
+                                (let [http-resp (pb/decode-any (.getResponse resp))]
+                                  (-> (.toBuilder resp)
+                                      (.setPassing (run-assertions @jibberscript sertions http-resp))
+                                      .build))
                                 (-> (.toBuilder resp)
-                                    (.setPassing (run-assertions @jibberscript sertions http-resp))
-                                    .build))
-                              (-> (.toBuilder resp)
-                                  (.setPassing false)
-                                  .build))))
-                        .build))
-                  true
-                  (catch IllegalStateException _
-                    (do
-                      (reset! jibberscript (init-jibberscript))
-                      false)))))))))))
+                                    (.setPassing false)
+                                    .build))))
+                          .build))
+                    true
+                    (catch IllegalStateException _
+                      (do
+                        (reset! jibberscript (init-jibberscript))
+                        false)))))))
+          (@next work))))))

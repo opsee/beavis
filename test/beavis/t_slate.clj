@@ -22,19 +22,6 @@
     [(before :facts (doto
                       (do-setup)
                       assertion-fixtures))]
-    (fact "ignores that a CheckResult of version < 1"
-      (let [assertions (atom {})
-            slate-stage (slate/slate-stage @db assertions)
-            result (-> (check-result 1 3 0)
-                       .toBuilder
-                       (.setVersion 1)
-                       .build)
-            invoked (atom false)
-            next (fn [work] (reset! invoked true))]
-        (slate/load-assertions @db assertions)
-        (stream/start-stage! slate-stage next)
-        (stream/submit slate-stage result)
-        @invoked => false))
     (fact "processes a passing checkresult"
       (let [assertions (atom {})
             slate-stage (slate/slate-stage @db assertions)
