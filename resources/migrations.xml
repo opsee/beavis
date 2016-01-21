@@ -61,4 +61,26 @@
             <column name="check_name" type="varchar(255)"/>
         </addColumn>
     </changeSet>
+    <changeSet id="5" author="greg">
+        <preConditions onFail="MARK_RAN">
+          <not>
+            <tableExists tableName="bartnet_assertions"/>
+          </not>
+        </preConditions>
+        <createTable tableName="bartnet_assertions">
+            <column name="id" type="serial"><constraints primaryKey="true"/></column>
+            <column name="check_id" type="varchar(255)"><constraints nullable="false" /></column>
+            <column name="customer_id" type="UUID"><constraints nullable="false" /></column>
+            <column name="relationship" type="relationship_type" nullable="false"/>
+            <column name="key" type="varchar(255)" nullable="false"/>
+            <column name="value" type="varchar(255)" nullable="false"/>
+            <column name="operand" type="varchar(255)" nullable="false"/>
+        </createTable>
+        <createIndex tableName="bartnet_assertions" indexName="check_id_idx">
+            <column name="check_id"/>
+        </createIndex>
+        <createIndex tableName="bartnet_assertions" indexName="customer_id_idx">
+            <column name="customer_id"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>
