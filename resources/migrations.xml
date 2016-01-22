@@ -64,7 +64,7 @@
     <changeSet id="5" author="greg">
         <preConditions onFail="MARK_RAN">
           <not>
-            <tableExists tableName="bartnet_assertions"/>
+            <sqlCheck expectedResult="1">select count(1) from pg_foreign_table where ftoptions='{table_name=assertions}'</sqlCheck>
           </not>
         </preConditions>
         <createTable tableName="bartnet_assertions">
