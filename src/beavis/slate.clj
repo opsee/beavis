@@ -112,7 +112,6 @@
         )
       StreamStage
       (submit [_ work]
-        (if (< (.getVersion work) 1)
           (do
             (let [check-id (.getCheckId work)
                   responses (.getResponsesList work)
@@ -139,4 +138,4 @@
                       (do
                         (reset! jibberscript (init-jibberscript))
                         false)))))))
-          (@next work))))))
+          ))))
