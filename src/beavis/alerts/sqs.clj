@@ -4,7 +4,6 @@
             [clojure.string :refer [join]]
             [cemerick.bandalore :as sqs]
             [cheshire.core :refer :all]
-            [manifold.deferred :as d]
             [manifold.stream :as s]
             [aleph.http :as http]))
 
@@ -41,7 +40,7 @@
                   (raise ex)))
         notif-s3-uri (when check
                         (-> @(http/get notificaption-uri {:retry-handler retry-handler} string-body)))
-        message {:type "alert" :check check}]
+        message {:type "alert" :paramters { :check check :s3_url notif-s3-uri }}]
       (do
         ;; allow this to raise an exception for now, i'd rather it was yeller'd than just logged.
         (sqs/send @client @queue (generate-string event))
