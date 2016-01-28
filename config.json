@@ -20,5 +20,8 @@
   "secret":"vape.key",
   "server":{
     "port":8081
+  },
+  "sqs": {
+    "queue-name": "{{SQS_QUEUE_NAME}}"
   }
 }

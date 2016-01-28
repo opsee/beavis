@@ -1,5 +1,6 @@
 (ns beavis.kundenbenachrichtigung
   (:require [beavis.alerts.email :as email]
+            [beavis.alerts.sqs :as sqs]
             [beavis.stream :refer :all]
             [beavis.sql :as sql]
             [clojure.tools.logging :as log]))
@@ -17,9 +18,11 @@
 
 (defn send-messages [event notifications]
   (doseq [notification notifications]
-    (case (:type notification)
-      "email" (email/handle-event event notification)
-      (log/info "No notification handler registered for type" (:type notification)))))
+    (do
+      (sqs/handle-event event)
+      (case (:type notification)
+        "email" (email/handle-event event notification)
+        (log/info "No notification handler registered for type" (:type notification))))))
 
 (defn handle-event [event]
   "handle-event wraps individual alert integrations with some logic that dictates whether or
@@ -56,7 +59,8 @@
         (reset! next cb)
         (reset! db db-conn)
         (reset! config cfg)
-        (email/init cfg))
+        (email/init cfg)
+        (sqs/init cfg))
       (stop-stage! [this]
         (reset! db nil)
         (reset! config nil))

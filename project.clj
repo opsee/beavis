@@ -30,6 +30,7 @@
                  [org.postgresql/postgresql "9.4-1202-jdbc42"]
                  [instaparse "1.4.1"]
                  [com.cemerick/url "0.1.1"]
+                 [com.cemerick/bandalore "0.0.6"]
                  [org.eclipse.jetty.websocket/websocket-api "9.3.5.v20151012"]
                  [org.eclipse.jetty.websocket/websocket-client "9.3.5.v20151012"]
                  [org.eclipse.jetty.websocket/websocket-common "9.3.5.v20151012"]

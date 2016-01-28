@@ -26,5 +26,8 @@
   "opsee": {
     "host": "{{OPSEE_HOST}}"
   },
+  "sqs": {
+    "queue-name":"{{SQS_QUEUE_NAME}}"
+  },
   "yeller":"{{YELLER_API_KEY}}"
 }
