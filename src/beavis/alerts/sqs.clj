@@ -1,21 +1,27 @@
 (ns beavis.alerts.sqs
   (:require [clojure.tools.logging :as log]
-            [cemerick.bandalore :as sqs]
+            [amazonica.aws.sqs :as sqs]
             [cheshire.core :refer :all]))
 
-(def client atom)
-(def queue atom)
-
+(def queue (atom nil))
 
 (defn init [config]
- (try 
-    (reset! client (sqs/create-client))
-    (reset! queue (sqs/create-queue client (get-in config [:sqs :queue-name])))
-    (catch Exception e (str "Exception: " (.getMessage e)))))
+ (try
+   (let [queue-name (get-in config [:sqs :queue-name])]
+     (sqs/create-queue :queue-name queue-name
+                       :attributes {
+                                    :VisibilityTimeout 30 ;sec
+                                    })
+     (reset! queue (sqs/find-queue queue-name)))
+   (catch Exception e
+     (log/error e "Failed to setup SQS"))))
  
 (defn handle-event [event]
   (try
-    (do 
-      (sqs/send @client @queue (generate-string event))
-      (log/info "Sent event to sqs" (generate-string event)))
-    (catch Exception e (str "Error: " (.getMessage e)))))
+    (do
+      ;; For now, gate this so that we're not throwing a ton of exceptions.
+      (when @queue
+        (sqs/send-message @queue (generate-string event))
+        (log/info "Sent event to sqs" (generate-string event))))
+    (catch Exception e
+      (log/error e "Failed to send message to SQS."))))
