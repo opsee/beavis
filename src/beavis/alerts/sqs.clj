@@ -2,7 +2,9 @@
   (:require [clojure.tools.logging :as log]
             [amazonica.aws.sqs :as sqs]
             [cheshire.core :refer :all]
-            [opsee.middleware.protobuilder :refer :all]))
+            [opsee.middleware.protobuilder :refer :all]
+            [clojure.data.codec.base64 :as b64])
+  (:import (co.opsee.proto CheckResult)))
 
 (def queue (atom nil))
 
@@ -22,9 +24,10 @@
     (do
       ;; For now, gate this so that we're not throwing a ton of exceptions.
       (when @queue
-        (sqs/send-message @queue (-> (hash->proto event)
+        (sqs/send-message @queue (-> (hash->proto CheckResult event)
                                      .toByteArray
-                                     encode))
+                                     b64/encode
+                                     String.))
         (log/info "Sent event to sqs" (generate-string event))))
     (catch Exception e
       (log/error e "Failed to send message to SQS."))))
