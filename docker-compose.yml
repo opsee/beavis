@@ -1,0 +1,7 @@
+postgres:
+  image: sameersbn/postgresql:9.4-3
+  environment:
+    PSQL_TRUST_LOCALNET: "true"
+    DB_USER: "postgres"
+    DB_PASS: ""
+    DB_NAME: "beavis_test"
