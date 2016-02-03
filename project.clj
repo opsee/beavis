@@ -19,6 +19,7 @@
                               :username :env
                               :passphrase :env}]]
   :dependencies [[org.clojure/clojure "1.7.0"]
+                 [org.clojure/data.codec "0.1.0"]
                  [io.nodyn/nodyn "0.1.1-SNAPSHOT"]
                  [com.fasterxml.jackson.core/jackson-core "2.2.3"]
                  [com.fasterxml.jackson.core/jackson-databind "2.2.3"]
