@@ -24,10 +24,12 @@
     (do
       ;; For now, gate this so that we're not throwing a ton of exceptions.
       (when @queue
-        (sqs/send-message @queue (-> (hash->proto CheckResult event)
-                                     .toByteArray
-                                     b64/encode
-                                     String.))
-        (log/info "Sent event to sqs" (generate-string event))))
+        (let [secs (:timestamp event)
+              event' (assoc event :timestamp {:seconds secs})]
+          (sqs/send-message @queue (-> (hash->proto CheckResult event')
+                                       .toByteArray
+                                       b64/encode
+                                       String.))
+          (log/info "Sent event to sqs" (generate-string event')))))
     (catch Exception e
       (log/error e "Failed to send message to SQS."))))
