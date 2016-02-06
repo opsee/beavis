@@ -310,6 +310,7 @@
 
     (context* "/notifications" []
       :tags ["notifications"]
+      :no-doc true
 
       (GET* "/" []
         :summary "Retrieve all of a customer's notifications"
