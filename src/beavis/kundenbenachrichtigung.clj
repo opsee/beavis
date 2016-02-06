@@ -19,10 +19,10 @@
 (defn send-messages [event notifications]
   (doseq [notification notifications]
     (do
-      (sqs/handle-event event)
-      (case (:type notification)
-        "email" (email/handle-event event notification)
-        (log/info "No notification handler registered for type" (:type notification))))))
+      (sqs/handle-event event))))
+      ;;(case (:type notification)
+        ;;"email" (email/handle-event event notification)
+        ;;(log/info "No notification handler registered for type" (:type notification))))))
 
 (defn handle-event [event]
   "handle-event wraps individual alert integrations with some logic that dictates whether or
