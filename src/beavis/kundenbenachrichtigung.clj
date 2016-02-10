@@ -16,13 +16,8 @@
     (and (nil? alert) (not (:passing event)))
     (and (not (:passing event)) (= (:state alert) "resolved"))))
 
-(defn send-messages [event notifications]
-  (doseq [notification notifications]
-    (do
-      (sqs/handle-event event))))
-      ;;(case (:type notification)
-        ;;"email" (email/handle-event event notification)
-        ;;(log/info "No notification handler registered for type" (:type notification))))))
+(defn send-messages [event]
+    (sqs/handle-event event))
 
 (defn handle-event [event]
   "handle-event wraps individual alert integrations with some logic that dictates whether or
@@ -38,18 +33,17 @@
   are inherently tied to the state of the event. It is assumed, in handlers, that if an event is passing,
   then it was previously okay."
   (let [event-id {:customer_id (:customer_id event) :check_id (:check_id event) :check_name (or (:check_name event)
-                                                                                                "")}
-        alert (first (sql/get-latest-alert @db event))
-        notifications (sql/get-notifications-by-check-and-customer @db event-id)]
-    (log/debug "Handling event: event=" (event-for-logging event) " alert=" alert " notifications=" notifications)
+      "")}
+        alert (first (sql/get-latest-alert @db event))]
+    (log/debug "Handling event: event=" (event-for-logging event) " alert=" alert)
     (when (resolve-predicate event alert)
       (log/info "Resolving alert for event: " event-id)
       (sql/resolve-alert! @db {:alert_id (:id alert)})
-      (send-messages event notifications))
+      (send-messages event))
     (when (create-predicate event alert)
       (log/info "Creating alert for event: " event-id)
       (sql/create-alert! @db event-id)
-      (send-messages event notifications))))
+      (send-messages event))))
 
 (defn alert-stage [db-conn cfg]
   (let [next (atom nil)]
@@ -59,7 +53,6 @@
         (reset! next cb)
         (reset! db db-conn)
         (reset! config cfg)
-        (email/init cfg)
         (sqs/init cfg))
       (stop-stage! [this]
         (reset! db nil)
