@@ -10,7 +10,6 @@ AGGRESSIVE_OPTS="-server -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSParall
 APPENV=${APPENV:-beavisenv}
 
 if [[ $AWS == 0 ]]; then
-  eval "$(/opt/bin/ec2-env)"
   /opt/bin/s3kms -r us-west-1 get -b opsee-keys -o dev/vape.key > /beavis/etc/vape.key
   /opt/bin/s3kms -r us-west-1 get -b opsee-keys -o dev/$APPENV > /beavis/etc/$APPENV
 else
