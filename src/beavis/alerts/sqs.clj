@@ -11,11 +11,12 @@
 (defn init [config]
  (try
    (let [queue-name (get-in config [:sqs :queue-name])]
-     (sqs/create-queue :queue-name queue-name
+     (sqs/create-queue {:endpoint "us-west-2"} 
+                       :queue-name queue-name
                        :attributes {
                                     :VisibilityTimeout 30 ;sec
                                     })
-     (reset! queue (sqs/find-queue queue-name)))
+     (reset! queue (sqs/find-queue {:endpoint "us-west-2"} queue-name)))
    (catch Exception e
      (log/error e "Failed to setup SQS"))))
  
@@ -26,7 +27,7 @@
       (when @queue
         (let [secs (:timestamp event)
               event' (assoc event :timestamp {:seconds secs})]
-          (sqs/send-message @queue (-> (hash->proto CheckResult event')
+          (sqs/send-message {:endpoint "us-west-2"} @queue (-> (hash->proto CheckResult event')
                                        .toByteArray
                                        b64/encode
                                        String.))
