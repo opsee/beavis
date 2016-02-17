@@ -266,7 +266,8 @@
   :as-response (pb-as-response ResultsResource)
   :available-media-types ["application/json" "application/x-protobuf"]
   :allowed-methods [:get]
-  :exists? (results-exist? q))
+  :exists? (results-exist? q)
+  :handle-ok identity)
 
 (defresource delete-all-resource [check-id] defaults
   :allowed-methods [:delete]
