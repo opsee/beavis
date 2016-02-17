@@ -6,10 +6,11 @@
             [opsee.middleware.protobuilder :as pb]
             [ring.middleware.cors :refer [wrap-cors]]
             [ring.middleware.params :refer [wrap-params]]
+            [ring.middleware.format-response :refer [make-encoder]]
             [clojure.java.jdbc :refer [with-db-transaction db-set-rollback-only!]]
             [liberator.dev :refer [wrap-trace]]
             [liberator.core :refer [resource defresource]]
-            [liberator.representation :refer [ring-response]]
+            [liberator.representation :refer [Representation ring-response]]
             [schema.core :as s]
             [verschlimmbesserung.core :as v]
             [riemann.query :as query]
@@ -18,10 +19,13 @@
             [clojure.string :as str]
             [compojure.route :as rt]
             [compojure.api.sweet :refer :all]
+            [compojure.api.middleware :as mw]
             [opsee.middleware.protobuilder :as proto]
             [beavis.habilitationsschrift :as hab]
             [riemann.index :as index])
-  (:import (co.opsee.proto Target CheckResult Check CheckResponse)))
+  (:import (co.opsee.proto Target CheckResult Check CheckResponse ResultsResource)
+           (com.google.protobuf GeneratedMessage)
+           (java.io ByteArrayInputStream)))
 
 ;;;;;========== Globals (eat my ass) ======
 
@@ -29,6 +33,23 @@
 (def etcd-client (atom nil))
 
 ;;;;;========== Resource Callbacks =========
+
+(extend-type GeneratedMessage
+  Representation
+  (as-response [this ctx]
+    {:body (.toByteArray this)
+     :headers {"Content-Type" "application/x-protobuf"}}))
+
+(defn pb-as-response [clazz]
+  (fn [data ctx]
+    (case (get-in ctx [:representation :media-type])
+                  "application/x-protobuf" {:body (ByteArrayInputStream.  (.toByteArray (pb/hash->proto clazz data)))
+                                            :headers {"Content-Type" "application/x-protobuf"}}
+                  (liberator.representation/as-response data ctx))))
+
+(defn encode-protobuf [body]
+  (.toByteArray body))
+
 
 (defn notify-assertions-reload []
   (try
@@ -240,6 +261,12 @@
   :exists? (results-exist? q)
   :handle-ok :results)
 
+(defresource gql-results-resource [q] defaults
+  :as-response (pb-as-response ResultsResource)
+  :available-media-types ["application/json" "application/x-protobuf"]
+  :allowed-methods [:get]
+  :exists? (results-exist? q))
+
 (defresource delete-all-resource [check-id] defaults
   :allowed-methods [:delete]
   :delete! (delete-all check-id))
@@ -267,7 +294,11 @@
 ;;;;;============ Routes ===============
 
 (defapi beavis-api
-  {:exceptions {:exception-handler robustify-errors}}
+  {:exceptions {:exception-handler robustify-errors}
+   :coercion   (fn [_] (-> mw/default-coercion-matchers
+                           (assoc :proto pb/proto-walker)
+                           (dissoc :response)))
+   :format {:formats [:json (make-encoder encode-protobuf "application/x-protobuf" :binary)]}}
 
   (routes
     (swagger-docs "/api/swagger.json")
@@ -337,6 +368,17 @@
         :body [notifications CheckNotifications]
         :return CheckNotifications
         (notification-resource check_id notifications)))
+
+    (context* "/gql" []
+      :tags ["gql"]
+      :no-doc true
+
+      (GET* "/results" []
+        :summary "Retrieves check results."
+        :produces ["application/json" "application/x-protobuf"]
+        :query-params [q :- String]
+        :return (pb/proto->schema ResultsResource)
+        (gql-results-resource q)))
 
     (context* "/results" []
       :tags ["results"]
