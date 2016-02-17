@@ -261,7 +261,8 @@
   :exists? (results-exist? q)
   :handle-ok :results)
 
-(defresource gql-results-resource [q] defaults
+(defresource gql-results-resource [q]
+  :authorized? (authorized?)
   :as-response (pb-as-response ResultsResource)
   :available-media-types ["application/json" "application/x-protobuf"]
   :allowed-methods [:get]
