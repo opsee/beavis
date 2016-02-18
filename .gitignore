@@ -13,3 +13,6 @@ pom.xml.asc
 .idea
 *.iml
 vape.key
+devenv
+docker/etc/riemann_config.clj
+docker/slate.tar.gz
