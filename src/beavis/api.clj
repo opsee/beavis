@@ -209,6 +209,20 @@
           results (filter #(= customer-id (:customer_id %)) (hab/query q))]
       {:results results})))
 
+(defn gql-unugly-result [result]
+  (let [ts (:timestamp result)
+        result' (dissoc result :timestamp)]
+    (if ts
+      (assoc result' :timestamp (str ts "s"))
+      result')))
+
+(defn gql-list-results [q]
+  (fn [ctx]
+    (let [customer-id (:customer_id (:login ctx))
+          results (filter #(= customer-id (:customer_id %)) (hab/query q))
+          results' (map gql-unugly-result results)]
+      {:results results'})))
+
 (defn delete-all [check-id]
   (fn [ctx]
     (let [customer-id (cust-id ctx)
@@ -266,8 +280,7 @@
   :as-response (pb-as-response ResultsResource)
   :available-media-types ["application/json" "application/x-protobuf"]
   :allowed-methods [:get]
-  :exists? (results-exist? q)
-  :handle-ok identity)
+  :handle-ok (gql-list-results q))
 
 (defresource delete-all-resource [check-id] defaults
   :allowed-methods [:delete]
