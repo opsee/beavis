@@ -22,6 +22,25 @@
     [(before :facts (doto
                       (do-setup)
                       assertion-fixtures))]
+    (fact "ignores v1 messages"
+      (let [assertions (atom {})
+            slate-stage (slate/slate-stage @db assertions)
+            ;; Set 0 responses as passing.
+            results (-> (check-result "goodcheck" 3 0 20)
+                        .toBuilder
+                        (.setVersion 1)
+                        .build)
+            passing (atom 0)
+            next (fn [work]
+                   (doseq [response (.getResponsesList work)]
+                     (when (.getPassing response)
+                       (swap! passing inc))))]
+        (slate/load-assertions @db assertions)
+        (stream/start-stage! slate-stage next)
+        (stream/submit slate-stage results)
+        ;; @passing is set to the number of passing results, we set them all to false, 
+        ;; slate should ignore them and leave them all as failing.
+        @passing => 0))
     (fact "processes a passing checkresult"
       (let [assertions (atom {})
             slate-stage (slate/slate-stage @db assertions)
