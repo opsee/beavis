@@ -291,7 +291,7 @@
 (s/defschema Assertion
   {:key                      s/Str
    (s/optional-key :value)   s/Str
-   :relationship             (s/enum "equal" "notEqual" "empty" "notEmpty" "contain" "notContain" "regExp")
+   :relationship             (s/enum "equal" "notEqual" "empty" "notEmpty" "contain" "notContain" "regExp" "greaterThan" "lessThan")
    (s/optional-key :operand) (s/either s/Str s/Num)})
 
 (s/defschema CheckAssertions
