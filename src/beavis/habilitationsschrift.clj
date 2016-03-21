@@ -131,9 +131,10 @@
   This may happen in the case that this was considered a service flap
   by Riemann.
   "
-  (let [event (to-riemann-event result)]
+  (let [event (to-riemann-event result)
+        target-type (get-in event [:target :type])]
     (log/debug (event-for-logging event))
-    (if (= "instance" (get-in event [:target :type]))
+    (if (or (= "instance" target-type) (= "host" target-type))
       (stream-and-return event)
       (let [responses (map stream-and-return (:responses event))
             _ (doall responses)
