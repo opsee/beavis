@@ -82,4 +82,10 @@
             <column name="customer_id"/>
         </createIndex>
     </changeSet>
+    <changeSet id="6" author="greg" failOnError="false" runInTransaction="false">
+      <sql>
+        alter type relationship_type add value 'greaterThan';
+        alter type relationship_type add value 'lessThan';
+      </sql>
+    </changeSet>
 </databaseChangeLog>
