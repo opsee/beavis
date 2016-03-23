@@ -40,7 +40,7 @@
                                                       .getGlobalContext
                                                       .getObject)
                             (into-array Object [assertion response])))]
-      (log/info "assertion" assertion "response" response "result" result (.get result "success"))
+      (log/debug "assertion" assertion "response" response "result" result (.get result "success"))
       (.get result "success"))
     (catch Exception ex (do
                           (report-exception ex {:assertion assertion
@@ -115,7 +115,7 @@
           (do
             (if (> (.getVersion work) 0)
               (do
-                (log/info "Bypassing assertions processing")
+                (log/debug "Bypassing assertions processing")
                 (@next work))
               (let [check-id (.getCheckId work)
                     responses (.getResponsesList work)

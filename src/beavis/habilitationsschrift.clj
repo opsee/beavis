@@ -155,7 +155,7 @@
       (try
         (.interrupt t)
         (catch InterruptedException e
-          (log/debug e "caught InterruptedException")))))
+          (log/error e "caught InterruptedException")))))
   ;; This is probably dangerous and will cause us to leak tasks, but it's the only way that we can get riemann.time to
   ;; stop and "cleanly" reset its state.
   (reset! riemann.time/threadpool []))
