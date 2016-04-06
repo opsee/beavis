@@ -134,7 +134,7 @@
   (let [event (to-riemann-event result)
         target-type (get-in event [:target :type])]
     (log/debug (event-for-logging event))
-    (if (or (= "instance" target-type) (= "host" target-type))
+    (if (some #(= target-type %) ["instance" "dbinstance" "host"])
       (stream-and-return event)
       (let [responses (map stream-and-return (:responses event))
             _ (doall responses)
