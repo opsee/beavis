@@ -8,10 +8,8 @@
             [beavis.stream :as stream]
             [beavis.consumer :as consumer]
             [beavis.deletions :as deletions]
-            [beavis.assertions :as assertions]
             [verschlimmbesserung.core :as v]
             [ring.adapter.jetty9 :refer [run-jetty]]
-            [beavis.slate :as slate]
             [opsee.middleware.watcher :as watcher]
             [beavis.habilitationsschrift :as hab]
             [beavis.kundenbenachrichtigung :as alerts])
@@ -19,10 +17,8 @@
            (org.eclipse.jetty.server.handler ErrorHandler)))
 
 (defn start-stream [conf pool]
-  (let [assertions-watcher (watcher/start "assertions" (:etcd conf) (fn [_] (assertions/reload-assertions pool)) assertions/path)
-        deletions-watcher (watcher/start "deletions" (:etcd conf) deletions/reload-deletes deletions/path {:recursive? true})
+  (let [deletions-watcher (watcher/start "deletions" (:etcd conf) deletions/reload-deletes deletions/path {:recursive? true})
         pipeline (stream/pipeline (consumer/nsq-stream-producer (:nsq conf))
-                                  (slate/slate-stage pool assertions/assertions)
                                   (hab/riemann-stage)
                                   (alerts/alert-stage pool conf))]
     (stream/start-pipeline-async! pipeline)))

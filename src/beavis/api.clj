@@ -1,7 +1,6 @@
 (ns beavis.api
   (:require [clojure.tools.logging :as log]
             [cheshire.core :refer :all]
-            [beavis.assertions :as assertions]
             [opsee.middleware.core :refer :all]
             [opsee.middleware.protobuilder :as pb]
             [ring.middleware.cors :refer [wrap-cors]]
@@ -49,12 +48,6 @@
 
 (defn encode-protobuf [body]
   (.toByteArray body))
-
-
-(defn notify-assertions-reload []
-  (try
-    (v/reset! @etcd-client "/opsee.co/assertions" "reload")
-    (catch Exception ex (log/error "" ex))))
 
 (defn not-delete? [ctx]
   (not= (get-in ctx [:request :request-method]) :delete))
@@ -135,14 +128,12 @@
                                                 sql/insert-into-assertions<!
                                                 tx)
                                :assertions))]
-          #(assoc ctx :assertions asserts)))
-      (finally (assertions/trigger-reload @etcd-client)))))
+          #(assoc ctx :assertions asserts))))))
 
 (defn delete-assertion! [check-id]
   (fn [ctx]
     (sql/delete-assertions-by-check-and-customer! @db {:check_id check-id
-                                                       :customer_id (cust-id ctx)})
-    (assertions/trigger-reload @etcd-client)))
+                                                       :customer_id (cust-id ctx)})))
 
 (defn create-assertion! [assertions]
   (fn [ctx]
@@ -155,8 +146,7 @@
                                                  (map ensure-assertion-fields (:assertions assertions))
                                                  sql/insert-into-assertions<!
                                                  tx)
-                                :assertions))}))
-      (finally (assertions/trigger-reload @etcd-client)))))
+                                :assertions))})))))
 
 (defn list-assertions [ctx]
   (records->rollups (sql/get-assertions-by-customer @db (cust-id ctx)) :assertions))
