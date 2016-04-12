@@ -35,23 +35,26 @@
     (when-not (deletions/is-deleted? (:check_id event))
       (@next-stage-fn event))))
 
+(periodically-expire 20)
+
 (let [index (core/wrap-index (index))]
   ;; This stream must be, in total, synchronous. Any asynchronous operations
   ;; must happen in another stream. This stream only updates the in-memory
   ;; state so that after a call to stream!, we can immediately query the
   ;; index to get the state of the mutated event. -greg
   (streams
-    (by [:host :service]
-        (not-indexed index
-                     (safe-index index))
-        ;; The timestamp for each response and result should be monotonically increasing.
-        ;; If we see an older timestamp for any of these, then it is possible out-of-order
-        ;; delivery, delayed delivery, or duplicate delivery. In any regard, let's simply
-        ;; drop it on the floor. -greg
-        (ignore-old-events index
-                           ;; three consecutive failures indicates a non-flapping state.
-                           (stable 90 :state
-                                   (safe-index index)
-                                   (changed :state
-                                            (is-result
-                                              (to-next-function))))))))
+    (default :ttl 240
+      (by [:host :service]
+          (not-indexed index
+                       (safe-index index))
+          ;; The timestamp for each response and result should be monotonically increasing.
+          ;; If we see an older timestamp for any of these, then it is possible out-of-order
+          ;; delivery, delayed delivery, or duplicate delivery. In any regard, let's simply
+          ;; drop it on the floor. -greg
+          (ignore-old-events index
+                             ;; three consecutive failures indicates a non-flapping state.
+                             (stable 90 :state
+                                     (safe-index index)
+                                     (changed :state
+                                              (is-result
+                                                (to-next-function)))))))))
