@@ -23,7 +23,7 @@
                  [com.fasterxml.jackson.core/jackson-core "2.2.3"]
                  [com.fasterxml.jackson.core/jackson-databind "2.2.3"]
                  [riemann "0.2.10" :exclusions [com.fasterxml.jackson.core/jackson-databind com.fasterxml.jackson.core/jackson-core]]
-                 [co.opsee/opsee-middleware "0.1.29"]
+                 [co.opsee/opsee-middleware "0.1.30"]
                  [info.sunng/ring-jetty9-adapter "0.9.2"]
                  [com.github.brainlag/nsq-client "1.0.0-SNAPSHOT"]
                  [yesql "0.4.1-SNAPSHOT"]
